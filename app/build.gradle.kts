@@ -1,0 +1,180 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt.android)
+    alias(libs.plugins.ktlint)
+}
+
+val releaseStoreFile = providers.gradleProperty("hardbasseq.releaseStoreFile").orNull
+val releaseStorePassword = providers.gradleProperty("hardbasseq.releaseStorePassword").orNull
+val releaseKeyAlias = providers.gradleProperty("hardbasseq.releaseKeyAlias").orNull
+val releaseKeyPassword = providers.gradleProperty("hardbasseq.releaseKeyPassword").orNull
+val hasReleaseSigning =
+    listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+
+android {
+    // Roadmap M1: single source of truth is gradle.properties, not this file.
+    namespace = providers.gradleProperty("hardbasseq.namespace").get()
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = providers.gradleProperty("hardbasseq.applicationId").get()
+        minSdk = 28
+        targetSdk = 36
+        versionCode = providers.gradleProperty("hardbasseq.versionCode").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("hardbasseq.versionName").getOrElse("0.2.0-m1")
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // This repository is the store build only: no online source is built in. The flag is kept
+        // so the shared player UI (PlayerScreen) and AuraCurveApplication compile unchanged.
+        buildConfigField("boolean", "ONLINE_SOURCES", "false")
+    }
+
+    // English-only app: also drops translations bundled with libraries.
+    androidResources {
+        localeFilters += "en"
+    }
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("hardbassRelease") {
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Roadmap 06, P6-6: R8 (isMinifyEnabled + isShrinkResources) was tried and switched off again:
+            // the signed release APK (about 7 MB) did not start on a device. Most likely that was not
+            // R8 at all: 1.1.2-beta.7 and beta.8 were built without it and did not start either. The
+            // cause was a NullPointerException in MainViewModel's init (state declared below the init
+            // block), fixed since. proguard-rules.pro is kept for the next attempt; turn minification
+            // back on only together with a device test.
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("hardbassRelease")
+        }
+    }
+
+    testOptions {
+        unitTests {
+            // android.jar's real classes are stubbed out (throw
+            // "not mocked") under plain testDebugUnitTest by default - this repo
+            // has code (e.g. RoomPresetRepository's corrupted-row logging) that
+            // legitimately calls android.util.Log from a path unit tests exercise,
+            // with no Robolectric/instrumentation set up to provide a real
+            // implementation. Falling back to harmless defaults (Log.w() no-ops
+            // and returns 0) instead of throwing is the standard fix.
+            isReturnDefaultValues = true
+            // Compose UI tests of the player run under Robolectric and need the resources.
+            isIncludeAndroidResources = true
+        }
+    }
+
+    sourceSets {
+        // The exported Room schemas are what MigrationTestHelper opens the old database from.
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        // With built-in Kotlin disabled, match Java's target explicitly.
+        // The JDK running Gradle (21 in CI) is not the bytecode target.
+        jvmTarget.set(JvmTarget.JVM_17)
+    }
+}
+
+ktlint {
+    // Matches the ktlint_official style already implied by
+    // kotlin.code.style=official in gradle.properties.
+    android.set(true)
+}
+
+ksp {
+    // M2: exports the DB schema to JSON on every build, the baseline
+    // MigrationTestHelper tests need. The `presets` table has never had a real
+    // write path before this change (verified: nothing referenced PresetDao),
+    // so there's no real prior schema to migrate away from yet - this starts
+    // the practice from the first schema that's actually reachable. No
+    // MigrationTestHelper test exists yet either (needs Robolectric or
+    // instrumentation, neither set up in this repo - see AppDatabase.kt).
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
+dependencies {
+    // Shared preset/DSP domain logic (plain Kotlin/JVM, no Android dependency).
+    implementation(project(":core"))
+    // SC Equalizer Player: the companion source screen the master bar's source
+    // picker launches (see PlayerBridge). A library module now, merged into this
+    // single app's manifest/APK instead of its own separate app.
+    implementation(project(":player"))
+
+    implementation(libs.core.ktx)
+    implementation(libs.lifecycle.runtime.ktx)
+    implementation(libs.lifecycle.viewmodel.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.lifecycle.service)
+    implementation(libs.navigation.compose)
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.activity.compose)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.graphics)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    implementation(libs.compose.material.icons.core)
+    implementation(libs.compose.material.icons.extended)
+
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
+    implementation(libs.datastore.preferences)
+    // Weekly background refresh of "Interesting new uploads".
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.car.app)
+    // Covers in the player's lists and the large cover, cached in memory and on disk.
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.zxing.core)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    // Compose UI tests of the player (mini player, Now playing, queue) on the JVM.
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+
+    // Tests on a device or emulator (roadmap 06, P6-3): ./gradlew :app:connectedDebugAndroidTest
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.rules)
+    androidTestImplementation(libs.room.testing)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.room.ktx)
+
+    debugImplementation(libs.compose.ui.tooling)
+    debugImplementation(libs.compose.ui.test.manifest)
+}

@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Optional (roadmap 06, P5-2): only ever granted by the user over ADB
+      (adb shell pm grant com.auracurve.app android.permission.DUMP). With it the session list also
+      finds apps that send no audio-session broadcast. Without it nothing changes.
+    -->
+    <uses-permission
+        android:name="android.permission.DUMP"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Lets the session list show other apps' names (package visibility, Android 11+). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".AuraCurveApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.AuraCurve">
+
+        <!--
+          singleTask: a link shared into the app from another app must reach the
+          already-running instance (onNewIntent) rather than start a second
+          MainActivity with its own view models next to the first.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.AuraCurve">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!--
+              Brings the player screen forward: the playback notification, the lock screen card and
+              the car's session (see PlayerLaunch in :player, which defines the same action name).
+            -->
+            <intent-filter>
+                <action android:name="com.auracurve.app.action.OPEN_PLAYER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!--
+              A shared preset: auracurve://preset?... (link or scanned QR code), see PresetShareCodec.
+              hardbasseq://preset?... is the scheme of links shared before the rename to AuraCurve.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="auracurve" android:host="preset" />
+                <data android:scheme="hardbasseq" android:host="preset" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          foregroundServiceType="mediaPlayback": this service doesn't play media itself,
+          but there is no FGS type that exactly fits "listen for other apps' audio
+          sessions to attach effects" - mediaPlayback is what comparable published
+          system-wide equalizer apps use for this, and keeps this out of the
+          Play-policy-reviewed "specialUse" category. See roadmap.md Session 13.
+        -->
+        <service
+            android:name=".service.AudioSessionForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Quick-settings tiles (roadmap 06, P5-1): EQ on/off and next preset. -->
+        <service
+            android:name=".quick.EqToggleTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_notification_eq"
+            android:label="@string/tile_eq_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".quick.NextPresetTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_notification_eq"
+            android:label="@string/tile_preset_label"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".quick.QuickWidgetProvider"
+            android:exported="true"
+            android:label="@string/tile_eq_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_widget_info" />
+        </receiver>
+
+        <!--
+          Android Auto: this app is a media app. The browser the car connects to is the player's
+          own AudioPlayerService (a MediaLibraryService, declared in :player's manifest); these
+          entries are merged into that declaration.
+        -->
+        <service
+            android:name="com.auracurve.app.player.service.AudioPlayerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+            <!-- Voice search in the car ("play X"): answered by the session (onSetMediaItems). -->
+            <intent-filter>
+                <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+    </application>
+
+</manifest>
