@@ -51,9 +51,9 @@ import com.auracurve.app.ui.theme.SonicNumerals
 import com.auracurve.app.ui.theme.spacing
 import kotlinx.coroutines.delay
 
-// docs/STATE_MACHINE.md §5: "Erneuter Versuch in {sekunden}s (Versuch
-// {attempt}/5)" - ticks down live so the acceptance criterion ("kein
-// dauerhafter Kontrollverlust") is visible to the user, not just true in
+// docs/STATE_MACHINE.md §5: "Retrying in {seconds}s (attempt
+// {attempt}/5)" - ticks down live so the acceptance criterion ("no
+// permanent loss of control") is visible to the user, not just true in
 // the abstract.
 @Composable
 internal fun retryingStatusText(state: AudioEngineState.Retrying): String {
@@ -69,8 +69,8 @@ internal fun retryingStatusText(state: AudioEngineState.Retrying): String {
 
 internal fun secondsUntil(millis: Long): Long = ((millis - System.currentTimeMillis()) / 1000).coerceAtLeast(0)
 
-// "Kopfhörer-Power": Bass, Dynamik und Loudness im Kopfhörer-Modus einstellbar,
-// dazu die Presets "Standard" (altes Verhalten) und "Knall".
+// "Headphone power": bass, dynamics and loudness adjustable in headphone mode,
+// plus the presets "Standard" (old behaviour) and "Boom" (HeadphonePower.KNALL).
 @Composable
 internal fun HeadphonePowerSection(
     power: HeadphonePower,

@@ -26,7 +26,7 @@ import com.auracurve.app.dsp.PlayerDspSettings
 import com.auracurve.app.ui.theme.SonicRule
 import com.auracurve.app.ui.theme.spacing
 
-// "Klang-Feinschliff" of the built-in player: mono bass (recommended, on by default)
+// "Sound fine-tuning" of the built-in player: mono bass (recommended, on by default)
 // with its crossover frequency, and the limiter that keeps the bass boost from clipping.
 @Composable
 fun PlayerDspCard(

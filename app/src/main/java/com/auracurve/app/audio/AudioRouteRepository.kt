@@ -133,7 +133,7 @@ class AndroidAudioRouteRepository
             }
         }
 
-        // roadmap-2026.md M3: "Datenschutzarmen, stabilen Route-Fingerprint definieren" -
+        // roadmap-2026.md M3: "define a privacy-friendly, stable route fingerprint" -
         // used as DeviceProfileEntity's primary key, so it must survive reconnects and
         // reboots. AudioDeviceInfo.getId() looked like the obvious choice but its own
         // documentation says the ID is "not persistent across sessions"; the device may

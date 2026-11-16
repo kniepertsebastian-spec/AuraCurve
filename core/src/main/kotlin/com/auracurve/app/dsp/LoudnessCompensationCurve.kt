@@ -2,39 +2,33 @@ package com.auracurve.app.dsp
 
 import com.auracurve.app.preset.TargetPoint
 
-// Feature-Idee aus dem Nothing/Dirac-Opteo-Vergleich (Chat, nicht roadmap-2026.md
-// verortet): eine ISO-226/Fletcher-Munson-*inspirierte* Lautstärkekompensation.
-// Das Ohr wird bei niedrigem Pegel relativ unempfindlicher für Bässe und Höhen
-// (die Equal-Loudness-Konturen flachen dort ab) - eine bei einer bestimmten
-// Hörlautstärke abgestimmte EQ-Kurve klingt deshalb bei leiser Wiedergabe dünn
-// und bei lauter Wiedergabe basslastig/schrill. Das hier ist keine echte
-// ISO-226-Lookup-Tabelle (die bräuchte SPL-Kalibrierung pro Gerät/Kopfhörer,
-// die diese App nicht hat), sondern approximiert nur die *Form* dieses
-// Effekts: ein Shelf-artiger Bass- und Höhen-Boost, der mit dem Abstand zu
-// einer Referenz-Hörlautstärke linear zunimmt und ab REFERENCE_DROP_DB
-// gekappt wird.
+// Feature idea from the Nothing/Dirac Opteo comparison (chat, not part of roadmap-2026.md):
+// a loudness compensation *inspired* by ISO 226/Fletcher-Munson. At low levels the ear
+// becomes relatively less sensitive to bass and treble (the equal-loudness contours flatten
+// there) - so an EQ curve tuned at one listening level sounds thin when played quietly and
+// boomy/shrill when played loud. This is not a real ISO 226 lookup table (that would need SPL
+// calibration per device/headphone, which this app does not have); it only approximates the
+// *shape* of the effect: a shelf-like bass and treble boost that grows linearly with the
+// distance from a reference listening level and is capped from REFERENCE_DROP_DB on.
 //
-// Ergebnis ist eine ganz normale TargetPoint-Liste - komponiert über
-// CurveComposer.combine() genau wie CorrectionProfile- und VoicingPreset-
-// Kurven, keine Sonderbehandlung im restlichen DSP-Pfad nötig.
+// The result is an ordinary TargetPoint list - composed via CurveComposer.combine() just like
+// CorrectionProfile and VoicingPreset curves, no special handling needed in the rest of the
+// DSP path.
 object LoudnessCompensationCurve {
-    // Equal-Loudness-Konturen flachen im Bass deutlich stärker ab als in den
-    // Höhen - der Bass bekommt deshalb den vollen Boost, die Höhen nur einen
-    // Bruchteil davon.
+    // Equal-loudness contours flatten much more in the bass than in the treble - so the
+    // bass gets the full boost, the treble only a fraction of it.
     private const val TREBLE_TO_BASS_RATIO = 0.4f
 
-    // Pegelabstand zur Referenzlautstärke, ab dem die Kompensation ihr
-    // Maximum (maxBoostDb) erreicht - darüber hinaus wird geklemmt, nicht
-    // weiter extrapoliert.
+    // Level distance from the reference level at which the compensation reaches its
+    // maximum (maxBoostDb) - beyond that it is clamped, not extrapolated further.
     private const val REFERENCE_DROP_DB = 40f
 
     private const val MIN_MAX_BOOST_DB = 0f
     private const val MAX_MAX_BOOST_DB = 15f
 
-    // currentLevelDb/referenceLevelDb sind relative dB-Werte auf derselben
-    // Skala wie die Lautstärkequelle des Aufrufers (z. B. System-Media-Volume
-    // in dB oder gemessenes Signal-RMS in dBFS) - diese Funktion braucht nur
-    // deren *Differenz*, keine absolute SPL-Kalibrierung.
+    // currentLevelDb/referenceLevelDb are relative dB values on the same scale as the
+    // caller's volume source (e.g. system media volume in dB or measured signal RMS in
+    // dBFS) - this function only needs their *difference*, no absolute SPL calibration.
     fun forLevel(
         currentLevelDb: Float,
         referenceLevelDb: Float = 0f,

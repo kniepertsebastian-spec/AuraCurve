@@ -16,9 +16,9 @@ data class BiquadCoefficients(
     val a2: Float,
 )
 
-// roadmap-2026.md M6 Phase 1: "Referenzimplementierung mit Offline-Testsignalen
-// gegen erwartete Frequenzantwort prüfen" / "Latenz, CPU, Akkuverbrauch,
-// Stabilität und hörbare Artefakte messen" (three execution paths: Android
+// roadmap-2026.md M6 Phase 1: "check a reference implementation with offline
+// test signals against the expected frequency response" / "measure latency, CPU,
+// battery use, stability and audible artefacts" (three execution paths: Android
 // DynamicsProcessing/vendor effects, an owned Media3 DSP path, or a graphic
 // approximation on device bands). This file only covers the filter-design half -
 // the standard "Audio EQ Cookbook" (Robert Bristow-Johnson, public domain)

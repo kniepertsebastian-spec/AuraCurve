@@ -2,30 +2,26 @@ package com.auracurve.app.dsp
 
 import com.auracurve.app.preset.TargetPoint
 
-// Chat-Nachtrag zu Punkt 1 ("Kopfhörer-Modus" sollte wirklich etwas bewirken,
-// nicht nur ein Datenbank-Flag sein): Ein echtes, hörbares Crossfeed/Bass-Mono-
-// Summing (Punkte 2/5) ist über den aktuell laufenden Wiedergabepfad
-// (AndroidAudioEngine: Androids System-Equalizer/DynamicsProcessing-Effekte,
-// an fremde Sessions wie Spotify/SoundCloud angehängt) technisch nicht
-// möglich - diese Systemeffekte kennen nur Band-EQ und Kompressor/Limiter/MBC,
-// keine eigenen Algorithmen. Diese Kurve ist der pragmatische Ersatz: eine
-// feste, einfache EQ-Anpassung, die genau über diesen bereits funktionierenden
-// Pfad läuft (MainViewModel.combinedCurve() -> EqualizerInterpolator ->
+// Chat follow-up to item 1 ("headphone mode" should really do something, not just be a
+// database flag): real, audible crossfeed/bass-mono summing (items 2/5) is technically not
+// possible over the playback path in use (AndroidAudioEngine: Android's system
+// Equalizer/DynamicsProcessing effects attached to other apps' sessions) - these system
+// effects only know band EQ and compressor/limiter/MBC, no custom algorithms. This curve is
+// the pragmatic substitute: a fixed, simple EQ adjustment that runs exactly over that
+// already working path (MainViewModel.combinedCurve() -> EqualizerInterpolator ->
 // AndroidAudioEngine.applyInternal() -> Equalizer.setBandLevel()).
 //
-// Begründung der Kurve: Kopfhörer sitzen näher am Ohr als Lautsprecher -
-// Präsenz/Zischlaute (~3-6 kHz) wirken dort tendenziell ermüdender (keine
-// Raumreflexionen/Distanz, die das glätten), und kleine Kopfhörer-Treiber
-// profitieren oft von etwas mehr Bass, weil ihnen die "Raumgewinn" genannte
-// Verstärkung fehlt, die Lautsprecher durch Wand-/Bodennähe bekommen. Keine
-// wissenschaftlich hergeleitete Zielkurve, nur ein sinnvoller fester
-// Ausgangston - ähnlich wie viele Kopfhörer-Apps einen "Kopfhörer-Modus"
-// als spürbaren Bass-/Präsenz-Tilt statt als 1:1-Nachbau von Crossfeed
-// umsetzen.
+// Reasoning behind the curve: headphones sit closer to the ear than speakers - presence and
+// sibilance (~3-6 kHz) tend to be more tiring there (no room reflections/distance to smooth
+// them), and small headphone drivers often benefit from a little more bass because they lack
+// the "room gain" speakers get from being near walls and floor. Not a scientifically derived
+// target curve, just a sensible fixed starting point - similar to how many headphone apps
+// implement a "headphone mode" as a noticeable bass/presence tilt rather than a 1:1
+// recreation of crossfeed.
 object HeadphoneComfortCurve {
     const val DEFAULT_BASS_DB = 2.5f
 
-    // Bassanhebung wählbar (Kopfhörer-Power); die Präsenzsenke bleibt fest.
+    // Bass boost is selectable (headphone power); the presence dip stays fixed.
     fun curve(bassDb: Float): List<TargetPoint> =
         listOf(
             TargetPoint(20f, bassDb),

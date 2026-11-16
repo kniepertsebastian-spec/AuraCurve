@@ -29,7 +29,7 @@ private const val MANUAL_DELTA_EPSILON_DB = 0.05f
  * a coroutine.
  */
 data class CurveInputs(
-    // M3 "Mein Kopfhörer": the correction curve of the active profile.
+    // M3 "My headphones": the correction curve of the active profile.
     val correctionCurve: List<TargetPoint>,
     // The active preset ("Klangstil").
     val presetCurve: List<TargetPoint>,
@@ -49,7 +49,7 @@ data class CurveInputs(
 
 object CurveCalculator {
     /**
-     * M3 "Zielkurven kombinieren": correction and voicing are combined into one curve before
+     * M3 "combine target curves": correction and voicing are combined into one curve before
      * anything else - band mapping, headroom - happens.
      *
      * HeadphoneComfortCurve and the loudness compensation only join in while

@@ -3,15 +3,15 @@ package com.auracurve.app.preset
 // Chat feature: genre x intensity preset redesign. Each level is an additive
 // delta on top of a GenrePreset's own "Moderate" tuning - only macroBassDb and
 // macroPunchDb, since the user's own definition of "aggressive" was bass/punch
-// ("mehr Wumms, viel Bass"), not treble, so Härte stays whatever each genre
+// ("more punch, lots of bass"), not treble, so hardness stays whatever each genre
 // already tuned it to. The MBC threshold/ratio deltas tighten the low band's
 // compression as bass grows so it stays controlled rather than boomy at high
-// intensity (the user's "Qualität steigend bei den Bässen"), and loosen it at
+// intensity (the user's "quality rising in the bass"), and loosen it at
 // low intensity since a quiet bass macro doesn't need much compression either.
 // This, together with the existing headroom-based automatic input-gain cut
 // (which already pulls down harder as the peak boost grows), is what keeps
-// perceived loudness comparatively stable across intensities ("Lautstärke
-// ändert sich hingegen kaum") without any new loudness-matching machinery.
+// perceived loudness comparatively stable across intensities ("the volume,
+// on the other hand, hardly changes") without any new loudness-matching machinery.
 enum class PresetIntensity(
     val id: String,
     val displayName: String,

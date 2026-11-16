@@ -197,7 +197,7 @@ internal fun CorrectionProfileRow(
                             )
                         }
                     }
-                    // M5 "Import, Export und Teilen ... integrieren" - only for
+                    // M5 "integrate import, export and sharing" - only for
                     // imported/custom profiles, mirroring PresetCard's own
                     // built-in-vs-custom distinction (built-ins have nothing
                     // device-specific worth exporting).
@@ -269,10 +269,10 @@ internal fun PresetCard(
                         modifier = Modifier.size(18.dp),
                     )
                 }
-                // "Duplizieren" works on any preset, built-in included - it's the
-                // way to turn one into an editable starting point. "Umbenennen"/
-                // "Löschen" only make sense for custom presets: "Built-ins bleiben
-                // unveränderlich" (M2 acceptance criterion).
+                // "Duplicate" works on any preset, built-in included - it's the
+                // way to turn one into an editable starting point. "Rename"/
+                // "Delete" only make sense for custom presets: "built-ins stay
+                // immutable" (M2 acceptance criterion).
                 DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.preset_duplicate)) },

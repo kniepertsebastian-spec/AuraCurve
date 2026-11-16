@@ -3,7 +3,7 @@ package com.auracurve.app.correction
 import com.auracurve.app.preset.TargetPoint
 import kotlinx.serialization.Serializable
 
-// M3 "Datenmodell": headphone/speaker correction curve, kept separate from the
+// M3 "data model": headphone/speaker correction curve, kept separate from the
 // VoicingPreset (== the existing Preset/BuiltInPresets) it gets combined with via
 // CurveComposer. sourceLabel is shown in the UI (e.g. "AutoEQ: Sennheiser HD 599",
 // "Manual") so a user can tell an imported correction from a hand-tuned one.

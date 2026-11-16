@@ -110,8 +110,8 @@ fun MainScreen(
     val clipboard = remember(context) { context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager }
 
     val resources = LocalResources.current
-    // M5 "Import, Export und Teilen ... über Android Storage Access Framework/
-    // Share Sheet integrieren" - OpenDocument shows the system file picker (any
+    // M5 "integrate import, export and sharing ... via the Android Storage Access
+    // Framework/share sheet" - OpenDocument shows the system file picker (any
     // storage provider, no runtime storage permission needed) and hands back a
     // content:// Uri; the file's text is read here (this composable has the
     // Context/ContentResolver access) and handed to the ViewModel, which owns
@@ -203,9 +203,9 @@ fun MainScreen(
         )
     }
 
-    // M5 "Vor dem Anwenden ist die resultierende Kurve sichtbar" / "Extreme
-    // Boosts werden nicht still angewandt, sondern begrenzt oder bestätigt" -
-    // nothing is saved until this dialog's "Importieren" is pressed.
+    // M5 "the resulting curve is visible before it is applied" / "extreme
+    // boosts are not applied silently but limited or confirmed" -
+    // nothing is saved until this dialog's "Import" is pressed.
     pendingImportPreview?.let { preview ->
         AlertDialog(
             onDismissRequest = { viewModel.cancelCorrectionProfileImport() },
@@ -446,7 +446,7 @@ private fun PlayerSourcePickerDialog(
     )
 }
 
-// Shared by "als neues Preset speichern" and "umbenennen" - both are just "give this
+// Shared by "save as new preset" and "rename" - both are just "give this
 // preset a name", differing only in title/initial value/what happens on confirm.
 @Composable
 private fun PresetNameDialog(

@@ -13,8 +13,8 @@ data class DiagnosticsEvent(
 
 /**
  * Bounded, timestamped history of session/route/state-transition events, for
- * the diagnostic report (roadmap-2026.md M0: "Diagnosereport um ...
- * Session-Ereignisse ... erweitern"). Deliberately just a rolling window,
+ * the diagnostic report (roadmap-2026.md M0: "extend the diagnostic
+ * report with ... session events"). Deliberately just a rolling window,
  * not a persisted log - this is for "what just happened" during a live
  * troubleshooting session, not long-term telemetry (see
  * docs/ARCHITECTURE.md's logging rules: no persisted, identifying data).

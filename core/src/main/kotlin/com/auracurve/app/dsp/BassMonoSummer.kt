@@ -1,34 +1,29 @@
 package com.auracurve.app.dsp
 
-// Priorisierte Umsetzungsliste aus dem Nothing/Dirac-Opteo-Chat, Punkt 2:
-// Sub-Bass unterhalb einer Grenzfrequenz wird vom Ohr kaum noch räumlich
-// wahrgenommen, aber Pegel-/Phasenunterschiede zwischen L/R dort führen bei
-// In-Ears (kein akustisches Übersprechen wie bei Lautsprechern) oft zu
-// "wabbeligem" statt druckvollem Bass. Diese Klasse summiert den Bassanteil
-// beider Kanäle zu einem gemeinsamen Mono-Signal, während alles oberhalb der
-// Grenzfrequenz unangetastet stereo bleibt.
+// Prioritised implementation list from the Nothing/Dirac Opteo chat, item 2:
+// Sub-bass below a cutoff frequency is hardly perceived spatially, but level/phase
+// differences between L/R there often make the bass "wobbly" instead of punchy on in-ears
+// (no acoustic crosstalk as with speakers). This class sums the bass of both channels into
+// one common mono signal, while everything above the cutoff stays untouched in stereo.
 //
-// Signalfluss (Mitte/Seite):
-// 1. Mitte M = (L+R)/2 und Seite S = (L-R)/2.
-// 2. Nur die Seite wird hochpassgefiltert (24 dB/Oktave, zwei Butterworth-
-//    Stufen) - unterhalb der Grenzfrequenz bleibt so keine L/R-Differenz übrig.
+// Signal flow (mid/side):
+// 1. Mid M = (L+R)/2 and side S = (L-R)/2.
+// 2. Only the side is high-pass filtered (24 dB/octave, two Butterworth stages) - so no L/R
+//    difference is left below the cutoff.
 // 3. L = M + HP(S), R = M - HP(S).
 //
-// Die Mitte wird nie gefiltert: Monomaterial (der Normalfall für Bass) kommt
-// unverändert heraus. Die frühere Variante (Tiefpass + Hochpass je Kanal,
-// danach summiert) löschte genau an der Grenzfrequenz alles aus - zwei
-// Butterworth-Filter 2. Ordnung sind dort 180° gegeneinander verschoben, bei
-// 120 Hz entstand also ein tiefes Loch mitten im Kick.
+// The mid is never filtered: mono material (the normal case for bass) comes out unchanged.
+// The earlier version (low-pass + high-pass per channel, then summed) cancelled everything
+// exactly at the cutoff - two 2nd-order Butterworth filters are 180° apart there, so at
+// 120 Hz there was a deep hole right in the kick.
 //
-// Wie BassExciter/BiquadFilterDesigner eine Referenzimplementierung, nur
-// gegen synthetische Testsignale offline geprüft (siehe BassMonoSummerTest),
-// nicht auf echter Hardware verifiziert - siehe roadmap-2026.md M6 Phase 1
-// "Umsetzungsstand" für denselben Vorbehalt. Arbeitet mit normalisierten
-// Float-Samples (-1..1), nicht mit PCM16 Short-Werten - :core bleibt
-// Android-frei.
+// Like BassExciter/BiquadFilterDesigner a reference implementation, only checked offline
+// against synthetic test signals (see BassMonoSummerTest), not verified on real hardware.
+// Works on normalised float samples (-1..1), not on PCM16 short values - :core stays free of
+// Android.
 data class BassMonoSummerSettings(
     val enabled: Boolean = false,
-    // Nur unterhalb dieser Frequenz wird zu Mono zusammengefasst.
+    // Only content below this frequency is summed to mono.
     val cutoffHz: Float = 120f,
 ) {
     fun clamped(): BassMonoSummerSettings = copy(cutoffHz = cutoffHz.coerceIn(MIN_CUTOFF_HZ, MAX_CUTOFF_HZ))
@@ -62,9 +57,9 @@ class BassMonoSummer(
         settings = newSettings.clamped()
     }
 
-    // Muss mit genau einem Stereo-Sample-Paar pro Aufruf, in Stream-
-    // Reihenfolge, aufgerufen werden - die Filterzustände tragen IIR-
-    // Zustand zwischen Aufrufen weiter (siehe BiquadFilterState).
+    // Must be called with exactly one stereo sample pair per call, in stream
+    // order - the filter states carry IIR state from one call to the next (see
+    // BiquadFilterState).
     fun process(
         left: Float,
         right: Float,

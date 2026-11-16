@@ -3,19 +3,20 @@ package com.auracurve.app.dsp
 import kotlin.math.PI
 import kotlin.math.tan
 
-// Zwei Ketten aus je vier Allpässen erster Ordnung, deren Ausgänge im Bassbereich 90° zueinander
-// verschoben sind (IIR-Hilbert-Paar). Aus einem Ton A·cos(θ) werden so I ≈ A·cos(θ + φ) und
-// Q ≈ A·sin(θ + φ): die Hüllkurve sqrt(I² + Q²) ist ohne Glättung und ohne Restwelligkeit genau A,
-// und I/A, Q/A sind Kosinus und Sinus der momentanen Phase. Darauf baut der Oberton-Generator in
-// BassExciter auf (siehe docs/DSP_VIRTUAL_BASS.md).
+// Two chains of four first-order allpasses each, whose outputs are 90° apart in the bass range
+// (IIR Hilbert pair). A tone A·cos(θ) thus becomes I ≈ A·cos(θ + φ) and Q ≈ A·sin(θ + φ): the
+// envelope sqrt(I² + Q²) is exactly A without smoothing and without ripple, and I/A, Q/A are the
+// cosine and sine of the instantaneous phase. The harmonic generator in BassExciter builds on
+// this.
 //
-// Beide Ketten sind reine Allpässe: Betrag 1 bei jeder Frequenz, nur die Phase unterscheidet sich.
-// φ selbst (die gemeinsame Phasendrehung) ist frequenzabhängig und für die Obertonerzeugung egal.
+// Both chains are pure allpasses: magnitude 1 at every frequency, only the phase differs.
+// φ itself (the common phase rotation) depends on frequency and does not matter for generating
+// harmonics.
 //
-// Die Polfrequenzen sind offline optimiert (Minimax auf die Abweichung von 90° zwischen 16 und
-// 800 Hz bei 48 kHz). Über die bilineare Transformation mit Vorverzerrung bleiben sie bei jeder
-// Abtastrate an derselben Stelle; die Abweichung von 90° liegt im Bereich 16–800 Hz bei
-// 44,1/48 kHz unter 0,2°, bei 96/192 kHz unter 0,4° (HilbertAllpassPairTest).
+// The pole frequencies are optimised offline (minimax on the deviation from 90° between 16 and
+// 800 Hz at 48 kHz). Thanks to the bilinear transform with prewarping they stay in the same place
+// at every sample rate; the deviation from 90° in the 16–800 Hz range is below 0.2° at
+// 44.1/48 kHz and below 0.4° at 96/192 kHz (HilbertAllpassPairTest).
 class HilbertAllpassPair {
     private val coefficientsI = DoubleArray(SECTIONS)
     private val coefficientsQ = DoubleArray(SECTIONS)

@@ -1,14 +1,42 @@
-# Datenschutzerklärung · Entwurf für die Store-Variante
+# Privacy policy · draft
 
-**Stand:** 15.11.2026. **Entwurf, rechtlich nicht geprüft.** Gilt für `com.auracurve.app`. Abgeglichen mit dem Code dieses Repos (Berechtigungen aus dem gebauten APK, `scripts/check_store_apk.py`).
+**Status:** 15 Nov 2026. **Draft, not legally reviewed.** Applies to `com.auracurve.app`. Checked against the code of this repository (permissions taken from the built APK, `scripts/check_store_apk.py`).
 
-**Vor dem Veröffentlichen ausfüllen:** alle `[Platzhalter]`; Text öffentlich hosten (z. B. GitHub Pages eines öffentlichen Repos oder eigene Domain) und in der Play Console sowie im SoundCloud-Anschreiben verlinken. Am besten von jemandem mit Datenschutz-Erfahrung gegenlesen lassen.
+**Before publishing:** fill in every `[placeholder]`; host the text publicly (for example GitHub Pages of a public repository or an own domain) and link it in the Play Console. Ideally have it reviewed by someone with data-protection experience.
 
-**Sobald die offizielle SoundCloud-Anbindung kommt (Roadmap 04), muss diese Erklärung erweitert werden** (Anmeldung, Token, übertragene Daten an SoundCloud).
+**If an online music service is ever connected, this policy must be extended** (sign-in, tokens, data sent to the service).
+
+The policy text is given in English and, for German users, in German. The German text is part of the published policy, not documentation.
 
 ---
 
-## Deutsch
+## English · primary
+
+### Privacy policy for the app "AuraCurve"
+
+**Controller:** [First name last name], [address], [email address]
+
+**1. In short.** AuraCurve does not process personal data on any server. The app has no user account, no ads, no analytics or crash reporting and sends nothing to the developer. Everything the app stores stays on your device.
+
+**2. What the app stores on your device:** equalizer settings, presets, your own curves, profiles for output devices and apps; playlists with title, artist and a reference to the audio file on your device; names of output devices (e.g. Bluetooth headphones) you give a profile; app settings. This data does not leave your device through the app. It is part of Android's backup if you have turned it on; cloud backup only when it is encrypted with your screen lock. Clearing the app's data in Android's settings or uninstalling the app deletes it.
+
+**3. Audio.** Sound is processed on your device only. AuraCurve records nothing, stores no audio and uploads nothing. The app does not use the microphone.
+
+**4. Permissions.** Notifications (playback and equalizer service); foreground service for media playback and wake lock (playback and equalizer with the screen off); run at startup (scheduled system tasks via Android WorkManager); internet and network state (declared by bundled Android libraries; the store version itself does not connect to any server); "extended app detection" (DUMP), optional and only grantable from a computer via ADB, to see on the device which app is playing audio. The app sees which apps on your device can be launched, to match an audio session to its app; this list is neither stored nor transmitted.
+
+**5. Android Auto.** With Android Auto your car shows your playlists and the current track. Data is only exchanged between your phone and your car, not with us.
+
+**6. Files.** AuraCurve reads only audio and preset files you pick yourself, and only to play or import them.
+
+**7. Your rights.** As we receive no personal data about you, there is nothing we could disclose; the data lives on your device only, where you can view and delete it. You have the right to lodge a complaint with a data protection supervisory authority, for [federal state] the [state data protection commissioner …].
+
+**8. Children.** The app is not directed at children under 13 and collects no data about them.
+
+**9. Changes.** If what the app does with data changes (for example through a connection to a music service), this policy is updated before that version is released. Last updated: [date].
+
+---
+
+## German (de-DE) · translated policy text
 
 ### Datenschutzerklärung für die App „AuraCurve“
 
@@ -67,42 +95,16 @@ Die App richtet sich nicht gezielt an Kinder unter 13 Jahren und erhebt keine Da
 
 ---
 
-## English
+## Play Console: data safety (proposal)
 
-### Privacy policy for the app "AuraCurve"
-
-**Controller:** [First name last name], [address], [email address]
-
-**1. In short.** AuraCurve does not process personal data on any server. The app has no user account, no ads, no analytics or crash reporting and sends nothing to the developer. Everything the app stores stays on your device.
-
-**2. What the app stores on your device:** equalizer settings, presets, your own curves, profiles for output devices and apps; playlists with title, artist and a reference to the audio file on your device; names of output devices (e.g. Bluetooth headphones) you give a profile; app settings. This data does not leave your device through the app. It is part of Android's backup if you have turned it on; cloud backup only when it is encrypted with your screen lock. Clearing the app's data in Android's settings or uninstalling the app deletes it.
-
-**3. Audio.** Sound is processed on your device only. AuraCurve records nothing, stores no audio and uploads nothing. The app does not use the microphone.
-
-**4. Permissions.** Notifications (playback and equalizer service); foreground service for media playback and wake lock (playback and equalizer with the screen off); run at startup (scheduled system tasks via Android WorkManager); internet and network state (declared by bundled Android libraries; the store version itself does not connect to any server); "extended app detection" (DUMP), optional and only grantable from a computer via ADB, to see on the device which app is playing audio. The app sees which apps on your device can be launched, to match an audio session to its app; this list is neither stored nor transmitted.
-
-**5. Android Auto.** With Android Auto your car shows your playlists and the current track. Data is only exchanged between your phone and your car, not with us.
-
-**6. Files.** AuraCurve reads only audio and preset files you pick yourself, and only to play or import them.
-
-**7. Your rights.** As we receive no personal data about you, there is nothing we could disclose; the data lives on your device only, where you can view and delete it. You have the right to lodge a complaint with a data protection supervisory authority.
-
-**8. Children.** The app is not directed at children under 13 and collects no data about them.
-
-**9. Changes.** If what the app does with data changes (for example through a connection to a music service), this policy is updated before that version is released. Last updated: [date].
-
----
-
-## Play Console: Datensicherheit (Vorschlag)
-
-| Frage | Antwort für die Store-Variante |
+| Question | Answer for this build |
 |---|---|
-| Erhebt oder teilt die App Nutzerdaten? | **Nein** (keine Daten verlassen das Gerät) |
-| Daten bei der Übertragung verschlüsselt? | entfällt (keine Übertragung) |
-| Können Nutzer das Löschen ihrer Daten beantragen? | entfällt; Löschen über App-Daten löschen/Deinstallieren |
+| Does the app collect or share user data? | **No** (no data leaves the device) |
+| Is data encrypted in transit? | not applicable (no transfer) |
+| Can users request that their data be deleted? | not applicable; deleting via clear app data / uninstall |
 
-## Offene Punkte und Empfehlung
+## Open points and recommendation
 
-- **Internet-Berechtigung:** Die Store-Variante enthält keinen Netzwerk-Code mehr, deklariert `INTERNET` und `ACCESS_NETWORK_STATE` aber weiter (Manifeste von `:app` und `:player`). Empfehlung: in einem Store-Manifest mit `tools:node="remove"` entfernen und am Gerät prüfen, dass Wiedergabe, Cover und Android Auto unverändert laufen. Dann kann Abschnitt 4 sagen: „AuraCurve hat keinen Internetzugriff.“ Noch nicht umgesetzt.
-- Prüfen, ob Gerätenamen (Abschnitt 2) als personenbezogen gelten und ob die Datensicherheits-Angabe dazu passt.
-- Hosting-Adresse festlegen; davon hängt auch das SoundCloud-Anschreiben ab (Platzhalter „Planned privacy policy“).
+- **Internet permission:** the app contains no network code of its own but still declares `INTERNET` and `ACCESS_NETWORK_STATE` (manifests of `:app` and `:player`). Recommendation: remove them with `tools:node="remove"` and check on a device that playback, covers and Android Auto still work. Section 4 could then say: "AuraCurve has no internet access." Not done yet.
+- Check whether device names (section 2) count as personal data and whether the data-safety answers match.
+- Decide on the hosting address.

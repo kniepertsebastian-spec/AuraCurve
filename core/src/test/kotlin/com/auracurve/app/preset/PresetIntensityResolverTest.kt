@@ -27,8 +27,8 @@ class PresetIntensityResolverTest {
 
         assertEquals(base.macroBassDb + 2.5f, resolved.macroBassDb, 0.001f)
         assertEquals(base.macroPunchDb + 1.5f, resolved.macroPunchDb, 0.001f)
-        // Härte is untouched by intensity - the user's own definition of
-        // "aggressive" was bass/punch ("Wumms"), not treble.
+        // Hardness is untouched by intensity - the user's own definition of
+        // "aggressive" was bass/punch, not treble.
         assertEquals(base.macroHaerteDb, resolved.macroHaerteDb)
     }
 

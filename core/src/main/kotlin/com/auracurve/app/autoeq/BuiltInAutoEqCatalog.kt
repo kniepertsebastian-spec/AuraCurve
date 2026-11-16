@@ -1,27 +1,22 @@
 package com.auracurve.app.autoeq
 
-// Feature-Idee aus dem Nothing/Dirac-Opteo-Chat ("Mein Kopfhörer", Punkt 8): ein
-// kleiner, fest eingebauter Katalog verbreiteter Kopfhörer/Earbuds, gegen den
-// AutoEqCatalogMatcher einen erkannten Bluetooth-Gerätenamen abgleicht, um ein
-// passendes Korrekturprofil vorzuschlagen - als Alternative zum manuellen
-// AutoEQ-Datei-Import über den bestehenden "Mein Kopfhörer"-Dialog
-// (MainScreen.kt/AutoEqParser.kt), nicht als Ersatz dafür: Der manuelle Import
-// bleibt für jedes Modell außerhalb dieser Liste (die allermeisten) der einzige
-// Weg.
+// Feature idea from the Nothing/Dirac Opteo chat ("My headphones", item 8): a small,
+// built-in catalogue of common headphones/earbuds that AutoEqCatalogMatcher matches a
+// detected Bluetooth device name against, to suggest a fitting correction profile - as an
+// alternative to the manual AutoEQ file import in the existing "My headphones" dialog
+// (MainScreen.kt/AutoEqParser.kt), not as a replacement: for every model outside this list
+// (by far most of them) the manual import remains the only way.
 //
-// Datenquelle: GraphicEQ-Messwerte aus dem AutoEQ-Projekt
-// (https://github.com/jaakkopasanen/AutoEq, MIT-lizenziert), Messungen von
-// oratory1990 (https://www.reddit.com/r/oratory1990/) - dieselben Werte, die
-// jede:r Nutzer:in auch manuell über autoeq.app oder direkt aus dem Repo laden
-// und über AutoEqParser einlesen könnte. Snapshot vom 26. September 2026, per
-// `git show` einzelner "GraphicEQ.txt"-Dateien aus dem Repo gezogen (kein Live-
-// Netzwerkzugriff zur Laufzeit) - AutoEQs eigene README empfiehlt für aktuelle
-// Ergebnisse ohnehin eher autoeq.app statt der im Repo committeten
-// `results/`-Dateien direkt, da diese primär interne Build-Artefakte des
-// Projekts sind. Nur 10 sehr verbreitete Modelle, nicht die vollständige
-// AutoEQ-Datenbank (tausende Modelle) - Letzteres bräuchte entweder einen
-// mitgelieferten, größeren Datensatz oder echten Netzwerkzugriff zur Laufzeit,
-// beides bewusst nicht Teil dieser Session.
+// Data source: GraphicEQ values from the AutoEQ project
+// (https://github.com/jaakkopasanen/AutoEq, MIT licensed), measurements by oratory1990
+// (https://www.reddit.com/r/oratory1990/) - the same values any user could load manually via
+// autoeq.app or straight from the repository and read in with AutoEqParser. Snapshot of
+// 26 September 2026, taken with `git show` of individual "GraphicEQ.txt" files from the
+// repository (no network access at runtime) - AutoEQ's own README recommends autoeq.app for
+// current results rather than the committed `results/` files, since those are mainly the
+// project's internal build artefacts. Only 10 very common models, not the full AutoEQ
+// database (thousands of models) - that would need either a larger bundled data set or real
+// network access at runtime, both deliberately out of scope.
 object BuiltInAutoEqCatalog {
     val entries: List<AutoEqCatalogEntry> =
         listOf(

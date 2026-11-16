@@ -146,7 +146,7 @@ object BuiltInPresets {
         )
 
     // Terrorcore source material is already pushed into heavy distortion, so
-    // this preset leans on taming (negative Härte, lower MBC threshold) and
+    // this preset leans on taming (negative hardness, lower MBC threshold) and
     // low-end weight rather than adding more high-frequency harshness.
     val MaximumDistortion =
         Preset(

@@ -27,7 +27,7 @@ fun AudioDeviceType.soundContext(): SoundContext? =
         else -> null
     }
 
-// Chat feature (item 1 of "setz alle Punkte um", not a roadmap-2026.md
+// Chat feature (item 1 of "implement all the points", not a roadmap-2026.md
 // milestone): a starting guess for whether headphone-style DSP (Crossfeed -
 // item 5 - and similar) should apply by default for a route of this type,
 // before any explicit per-route override (DeviceProfileEntity.

@@ -1,107 +1,91 @@
-# Architektur
+# Architecture
 
-Stand: M1 (Projektfundament). Dieses Dokument beschreibt den aktuellen
-Stand, nicht die vollständige Zielarchitektur. Ab 23. September 2026 ist
-`roadmap-2026.md` §5 ("Empfohlene technische Architektur") die aktuelle
-Referenz für die Zielarchitektur (Domänenpipeline + Komponententabelle:
-`AudioSessionCoordinator`, `CurveComposer`, `CapabilityAdapter`,
-`HeadroomCalculator`, `DiagnosticsRecorder` u. a.) – wird laufend
-nachgeführt, wenn neue Meilensteine landen. `DiagnosticsRecorder` ist seit
-dieser Session bereits als erste Komponente umgesetzt (siehe unten).
+An overview of how the code is organized today. Details live in the code; this file describes the
+structure and the rules that hold across it.
 
-## Modulstruktur
+## Modules
 
-Aktuell ein einzelnes App-Modul (`app/`), wie in Roadmap §7 für frühe
-Meilensteine ausdrücklich erlaubt. Innerhalb des Moduls ist bereits nach
-Roadmap-Paketen getrennt:
+| Module | Kind | Contents |
+|---|---|---|
+| `:app` | Android application | UI (Jetpack Compose), audio engine, services, persistence, DI. |
+| `:core` | Plain Kotlin/JVM | Presets, curve math, DSP (biquads, limiter, bass exciter, crossfeed, ...), AutoEQ parsing, JSON serialization. No Android dependency, so it is tested with plain JUnit. |
+| `:player` | Android library | Built-in player based on Media3/ExoPlayer: `AudioPlayerService` (a `MediaLibraryService` for notification, lock screen, Bluetooth and Android Auto) and `PlayerDspAudioProcessor`, the player's own real-time processing chain. |
+
+All packages live under `com.auracurve.app` (the player under `com.auracurve.app.player`).
+
+## Packages in `:app`
 
 ```text
 com.auracurve.app/
+  AuraCurveApplication.kt  # Hilt application, starts the session service
   MainActivity.kt
-  audio/                 # Audio-Schnittstellen + Android-Implementierung
-  ui/
-    main/                 # MainViewModel (State + Business-Logik)
-    navigation/           # AppNavHost (Compose-Navigationsgraph)
-    theme/                # Compose-Theme
+  audio/        # AudioEngine interface and AndroidAudioEngine, sessions, routes, capabilities
+  auto/         # Android Auto catalog and car connection
+  correction/   # Headphone correction profiles (AutoEQ)
+  data/         # Room database, entities, DAOs, migrations
+  di/           # Hilt modules
+  diagnostics/  # In-memory diagnostics recorder and report
+  discovery/    # Discovery seam (no source in this build, see DistributionModule)
+  integration/  # Bridge to the built-in player, local track reader, online-source seam
+  playlist/     # Saved playlists
+  preset/       # Preset repository
+  profile/      # Device and app profiles
+  quick/        # Quick settings tiles and home-screen widget
+  service/      # AudioSessionForegroundService and its idle shutdown
+  settings/     # DataStore settings and the live editing state
+  ui/           # Compose screens: equalizer, player, diagnostics, theme, navigation
 ```
 
-Die Trennung Audio-API/Android-Backend (Roadmap §7: "Vor Meilenstein 2
-sollen die Audio-Schnittstellen jedoch klar vom Android-Backend getrennt
-sein") existiert bereits für `AudioEffectRepository` (Interface) vs.
-`AndroidAudioEffectRepository` (Implementierung). Die vollständigen
-`AudioEngine`/`AudioSessionRepository`/`AudioRouteRepository`-Schnittstellen
-aus Roadmap §7 kommen mit M2.
+## State and data flow
 
-## Datenfluss / Zustandshaltung
+- `MainViewModel` holds the equalizer screen's state as `StateFlow`s and owns the business logic.
+  Composables only read state and forward events.
+- Presets, device profiles, correction profiles and app profiles are stored in a Room database
+  (`AppDatabase`, schema version 3; exported schemas in `app/schemas/` back the migration tests).
+  Settings and playlists use DataStore.
+- `AudioSessionForegroundService` watches for audio sessions that other apps report, attaches the
+  effects through `AudioEngine` and stops itself after ten minutes without a session.
+- `DiagnosticsRecorder` keeps the last 50 session, route and engine events in memory only, for
+  the diagnostics report. Nothing is persisted.
 
-`MainViewModel` hält den UI-Zustand des Startbildschirms (`StateFlow`) und
-kapselt den einzigen Repository-Aufruf, der bisher existiert
-(`AudioEffectRepository.queryAvailableEffects()`). Die Composable
-(`MainScreen`) liest nur Zustand und leitet Events weiter – keine
-Geschäftslogik direkt in der Composable (M1-Abnahmekriterium).
+## Dependency injection
 
-Die M0-Spikes (Session-Attach, Testton, Session 0) wurden am 5. November 2026
-gelöscht (siehe `docs/DECISIONS.md`); ihre Ergebnisse stehen weiter in
-`docs/FEASIBILITY.md`.
+Hilt: `@HiltAndroidApp` on `AuraCurveApplication`, `@AndroidEntryPoint` on `MainActivity`,
+`@HiltViewModel` view models. Modules in `di/`: `AudioModule`, `DatabaseModule`,
+`DiagnosticsModule`, `DispatcherModule`, `IntegrationModule`, `PersistenceModule` and
+`DistributionModule`, which binds the "no online source" implementations of `OnlineSources`,
+`DiscoverySource` and `LinkImport`.
 
-`DiagnosticsRecorder` (`diagnostics/DiagnosticsRecorder.kt`) ist dagegen
-Produktcode: ein `@Singleton`, den `AudioSessionForegroundService` mit
-Session-/Route-/Engine-State-Ereignissen füttert und den `MainViewModel`
-für den Diagnosebericht (`DiagnosticsReportFormatter`) ausliest. Bewusst
-nur ein beschränkter In-Memory-Ringpuffer (50 Einträge), keine Persistenz –
-siehe Fehler-/Logstrategie unten zu personenbezogenen Daten.
-
-## Dependency Injection
-
-Hilt (`@HiltAndroidApp` auf `HardBassEqApplication`, `@AndroidEntryPoint`
-auf `MainActivity`, `@HiltViewModel` auf `MainViewModel`, injiziert über
-`hiltViewModel()` in `AppNavHost`). `AudioModule` bindet
-`AudioEffectRepository` auf `AndroidAudioEffectRepository`;
-`DispatcherModule` stellt einen qualifizierten `@DefaultDispatcher`
-bereit. Das dafür nötige KSP-Tooling kollidiert mit AGP 9s eingebautem
-Kotlin – siehe `docs/adr/0001-defer-ksp-based-tooling.md` (Problem) und
-`docs/adr/0002-hilt-ksp-setup.md` (umgesetzter Workaround: Kotlin auf
-2.3.20, `android.builtInKotlin=false`, `org.jetbrains.kotlin.android`
-wieder angewendet).
+KSP (needed by Hilt and Room) does not work with AGP 9's built-in Kotlin. The workaround
+(`android.builtInKotlin=false`, `android.newDsl=false`, the `org.jetbrains.kotlin.android` plugin
+applied again) is described in `docs/adr/0001-kotlin-ksp-with-agp9.md`.
 
 ## Navigation
 
-`AppNavHost` mit aktuell einer Route (`home`). Struktur ist so angelegt,
-dass die in Roadmap §7 geplanten Feature-Bereiche (Onboarding, Presets,
-Profile, Diagnose) eigene Routen bekommen können, ohne den Graphen
-umzubauen.
+`AppNavHost` with the routes home (equalizer), player, linked services and diagnostics.
 
-## Threading-Regeln (verbindlich, Roadmap §7)
+## Threading rules
 
-- Keine `AudioEffect`-Aufrufe direkt aus Composables.
-- Jedes Effektobjekt hat genau einen Owner im Audio-Layer.
-- Erstellen/Anwenden/Freigeben seriell über einen `Mutex`
-  (so macht es `AndroidAudioEngine`).
-- Effekte werden immer in `finally` freigegeben.
+- No `AudioEffect` calls directly from composables.
+- Every effect object has exactly one owner in the audio layer.
+- Creating, applying and releasing effects is serialized with a `Mutex` (see `AndroidAudioEngine`).
+- Effects are always released in `finally`.
 
-## Fehler- und Logstrategie
+## Errors and logging
 
-- Keine dedizierte Logging-Bibliothek bisher eingerichtet, da noch keine
-  produktive Logik existiert, die strukturiertes Logging bräuchte.
-- Verbindliche Regel für jeden zukünftigen Logging-Code (Release-Build):
-  **keine** Medien-/Tracknamen, keine Bluetooth-Gerätenamen oder
-  MAC-Adressen, keine sonstigen personenbezogenen oder eindeutig
-  identifizierenden Daten in Log-Zeilen (Roadmap §12).
-- Fehlerzustände (verlorene Effekt-Kontrolle, tote Session, nicht
-  unterstützte Parameter) werden als Zustände modelliert, nicht als
-  Exceptions nach außen geworfen (jede Methode in `AndroidAudioEngine` fängt
-  Fehler ab und meldet einen Zustand statt zu crashen).
+- Error conditions (lost effect control, dead session, unsupported parameters) are modelled as
+  state, not thrown to the caller: `AndroidAudioEngine` catches failures and reports a state.
+- Log lines in release builds contain **no** media or track names, no Bluetooth device names or
+  MAC addresses and no other personal or uniquely identifying data.
 
-## Paketname / Arbeitstitel
+## Package name
 
-Zentral in `gradle.properties` (`hardbasseq.applicationId`,
-`hardbasseq.namespace`), referenziert aus `app/build.gradle.kts`. Der
-Anzeigename (`app_name`) bleibt in `strings.xml`, da das der
-Android-übliche Ort dafür ist.
+The application ID and namespace are set once in `gradle.properties`
+(`hardbasseq.applicationId`, `hardbasseq.namespace`) and read by `app/build.gradle.kts`. The
+display name (`app_name`) is in `app/src/main/res/values/strings.xml`.
 
-## CI / Qualitätssicherung
+## CI
 
-Siehe `.github/workflows/ci.yml`: ktlint, `assembleDebug`, Unit-Tests (`testDebugUnitTest`,
-`:core:test`), Prüfung der APK auf Online-Zugriffscode (`scripts/check_store_apk.py`),
-Kompilieren der Instrumentierungstests, Release-Build und Android Lint. Hintergrund zum
-Kotlin/KSP-Setup: `docs/adr/0001-defer-ksp-based-tooling.md`.
+`.github/workflows/ci.yml`: ktlint, `assembleDebug`, unit tests (`testDebugUnitTest`,
+`:core:test`), a check that the APK contains no online-access code (`scripts/check_store_apk.py`),
+compiling the instrumented tests, the release build and Android Lint.

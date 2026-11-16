@@ -1,14 +1,14 @@
 package com.auracurve.app.dsp
 
-// roadmap-2026.md M4: "Warnstufen definieren: ausreichend Headroom; Limiter
-// arbeitet gelegentlich; dauerhaft starke Begrenzung/zu aggressive Einstellung."
+// roadmap-2026.md M4: "define warning levels: enough headroom; limiter
+// works occasionally; constant heavy limiting/settings too aggressive."
 // Thresholds are an analytical estimate derived from the combined curve's peak
 // boost (HeadroomInfo), not a measurement of the Limiter/DynamicsProcessing's
 // actual real-time gain reduction - Android exposes no public API for that. This
 // can only ever describe "how hard the Limiter is expected to have to work",
 // never a verified reading - callers must never present it as more than that
-// (M4 acceptance criterion: "Die Oberfläche bezeichnet keine Schätzung als echte
-// Messung").
+// (M4 acceptance criterion: "the interface never presents an estimate as a real
+// measurement").
 enum class HeadroomWarningLevel {
     SUFFICIENT,
     OCCASIONAL_LIMITING,

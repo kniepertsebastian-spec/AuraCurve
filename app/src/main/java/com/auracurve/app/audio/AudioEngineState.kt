@@ -2,7 +2,7 @@ package com.auracurve.app.audio
 
 // roadmap-2026.md M1 / docs/STATE_MACHINE.md: bounded re-attach with backoff.
 // Shared between AndroidAudioEngine (schedules retries against this) and the UI
-// (renders "Versuch N/MAX_RETRY_ATTEMPTS").
+// (renders "attempt N/MAX_RETRY_ATTEMPTS").
 const val MAX_RETRY_ATTEMPTS = 5
 
 sealed interface AudioEngineState {
@@ -20,7 +20,7 @@ sealed interface AudioEngineState {
     ) : AudioEngineState
 
     // Session attached AND the last apply() call succeeded - the only state the
-    // UI may render as "Aktiv".
+    // UI may render as "Active".
     data class Active(
         val sessionId: Int,
     ) : AudioEngineState
@@ -48,7 +48,7 @@ sealed interface AudioEngineState {
     ) : AudioEngineState
 
     // Retry budget exhausted, or a non-recoverable failure. Requires an
-    // explicit next action (see EqualizerScreen's "Erneut versuchen").
+    // explicit next action (see EqualizerScreen's "Try again").
     data class Error(
         val message: String,
     ) : AudioEngineState

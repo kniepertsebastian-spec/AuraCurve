@@ -2,11 +2,11 @@ package com.auracurve.app.dsp
 
 import kotlinx.serialization.Serializable
 
-// "Kopfhörer-Power": die bisher festen Kopfhörer-Werte (Bass +2,5 dB, entschärfte
-// Dynamik, Loudness bis 9 dB) einstellbar. DEFAULT entspricht exakt dem alten
-// Verhalten; KNALL ist das kräftige Preset (mehr Bass, volle Dynamik, mehr
-// Loudness) - bewusst laut, die Eingangsverstärkung wird weiterhin über den
-// Headroom-Schutz begrenzt.
+// "Headphone power": makes the formerly fixed headphone values (bass +2.5 dB, eased
+// dynamics, loudness up to 9 dB) adjustable. DEFAULT matches the old behaviour
+// exactly; KNALL (shown as "Boom") is the strong preset (more bass, full dynamics, more
+// loudness) - deliberately loud, while the input gain is still limited by the
+// headroom protection.
 @Serializable
 data class HeadphonePower(
     val bassDb: Float = DEFAULT_BASS_DB,

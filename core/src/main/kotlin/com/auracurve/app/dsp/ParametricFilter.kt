@@ -1,7 +1,7 @@
 package com.auracurve.app.dsp
 
-// roadmap-2026.md M6 Phase 1: "Filtermodell für Peak, Low Shelf, High Shelf und
-// optional High-/Low-Pass definieren." LOW_PASS/HIGH_PASS ignore gainDb (the RBJ
+// roadmap-2026.md M6 Phase 1: "define a filter model for peak, low shelf, high
+// shelf and optionally high/low pass." LOW_PASS/HIGH_PASS ignore gainDb (the RBJ
 // cookbook forms below have no gain parameter for them) - kept in one flat shape
 // rather than a type hierarchy since M6 Phase 2 needs a uniform list of filters
 // to support (per its own tasks) copy/paste, per-filter bypass and reordering.
@@ -21,7 +21,7 @@ data class ParametricFilter(
     val bypassed: Boolean = false,
 )
 
-// M6 Phase 1: "Parametergrenzen für Frequenz, Gain und Q festlegen."
+// M6 Phase 1: "set parameter limits for frequency, gain and Q."
 object ParametricFilterBounds {
     const val MIN_FREQUENCY_HZ = 20f
     const val MAX_FREQUENCY_HZ = 20000f

@@ -3,16 +3,17 @@ package com.auracurve.app.dsp
 import kotlin.math.log10
 import kotlin.math.pow
 
-// Fairer Original/EQ-Vergleich: Ein EQ, der insgesamt lauter klingt, wirkt schnell "besser".
-// Diese Schätzung bestimmt, wie viel lauter (positiv) oder leiser (negativ) die EQ-Seite gegenüber
-// dem Original ist, und verteilt die Angleichung so, dass jeweils die lautere Seite leiser wird
-// (der Effekt kann nur abschwächen, nicht verstärken). Eine Schätzung aus der Kurve, keine Messung.
+// Fair original/EQ comparison: an EQ that sounds louder overall quickly seems "better".
+// This estimate determines how much louder (positive) or quieter (negative) the EQ side is
+// compared with the original, and splits the matching so that the louder side always gets
+// quieter (the effect can only attenuate, never amplify). An estimate from the curve, not a
+// measurement.
 object LoudnessMatch {
     private const val MAX_ATTENUATION_DB = 15f
 
-    // Gewichtung der Hörempfindlichkeit (A-Bewertung, als Leistungsverhältnis). Musik hat pro Oktave
-    // ungefähr gleich viel Energie, ein Graphik-EQ besteht aus ~oktavbreiten Bändern - daher zählt
-    // jedes Band mit dem Gewicht seiner Mittenfrequenz.
+    // Weighting by hearing sensitivity (A-weighting, as a power ratio). Music has roughly the
+    // same energy per octave, and a graphic EQ consists of ~octave-wide bands - so each band
+    // counts with the weight of its centre frequency.
     fun aWeightPower(frequencyHz: Float): Double {
         val f2 = frequencyHz.toDouble().pow(2)
         val ra =
@@ -21,7 +22,7 @@ object LoudnessMatch {
         return ra * ra
     }
 
-    /** Leistungsgewichtetes Mittel der Bandverstärkungen in dB (0 bei leerer Liste). */
+    /** Power-weighted mean of the band gains in dB (0 for an empty list). */
     fun meanGainDb(bands: List<Pair<Float, Float>>): Float {
         if (bands.isEmpty()) return 0f
         var weightSum = 0.0
@@ -35,13 +36,13 @@ object LoudnessMatch {
         return (10.0 * log10(powerSum / weightSum)).toFloat()
     }
 
-    /** Geschätzter Pegelunterschied EQ gegenüber Original: Bandmittel plus Eingangsverstärkung. */
+    /** Estimated level difference of EQ versus original: band mean plus input gain. */
     fun eqLevelDeltaDb(
         bands: List<Pair<Float, Float>>,
         inputGainDb: Float,
     ): Float = meanGainDb(bands) + inputGainDb
 
-    /** Wie viel jede Seite abgesenkt wird, damit beide gleich laut sind (beide Werte <= 0). */
+    /** How much each side is lowered so both are equally loud (both values <= 0). */
     data class Plan(
         val originalGainDb: Float,
         val eqExtraGainDb: Float,

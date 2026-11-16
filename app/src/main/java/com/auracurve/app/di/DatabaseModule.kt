@@ -33,8 +33,8 @@ object DatabaseModule {
             // Only guards against a future downgrade (newer DB opened by an older
             // app build); upgrades go through the explicit migrations above.
             // Per-row corruption (one bad custom preset) is handled in
-            // PresetRepository instead, which is what M2's "ein beschädigtes
-            // Nutzerpreset kann die App nicht am Start hindern" actually asks for.
+            // PresetRepository instead, which is what M2's "a corrupted
+            // user preset cannot keep the app from starting" actually asks for.
             .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .build()
 

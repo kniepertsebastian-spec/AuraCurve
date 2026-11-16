@@ -3,7 +3,7 @@ package com.auracurve.app.data.profile
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// M3: "Profilwechsel bei Bluetooth-, USB- und Lautsprecherwechsel" - one row per
+// M3: "switch profile when Bluetooth, USB or speaker output changes" - one row per
 // route, remembering which voicing (boundPresetId) and correction curve
 // (boundCorrectionProfileId, null = BuiltInCorrectionProfiles.None) were last
 // selected while that route was active. routeId must be a STABLE fingerprint -
@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey
 // AudioDeviceInfo.getId() (documented as not persistent across sessions).
 // boundCorrectionProfileId added without a schema version bump: no reader/writer
 // existed for this table yet (same reasoning PresetEntity's own comment uses).
-// headphoneAcousticsOverride (chat feature, item 1 of "setz alle Punkte um"):
+// headphoneAcousticsOverride (chat feature, item 1 of "implement all the points"):
 // same reasoning applies - the app has no shipped release yet (pre-M7), so
 // there is no installed schema this could break. null means "no explicit
 // choice for this route yet, fall back to AudioDeviceType.defaultHeadphone-

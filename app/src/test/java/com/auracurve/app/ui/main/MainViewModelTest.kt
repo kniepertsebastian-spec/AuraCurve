@@ -665,7 +665,7 @@ class MainViewModelTest {
             assertTrue(ids.contains(custom.id))
         }
 
-    // --- Chat feature (not a roadmap-2026.md milestone): "Mein Kopfhörer" auto-detection ---
+    // --- Chat feature (not a roadmap-2026.md milestone): "My headphones" auto-detection ---
 
     @Test
     fun `no suggestion for the default speaker route`() =
@@ -772,7 +772,7 @@ class MainViewModelTest {
         runTest {
             // True Crossfeed/Bass-Mono-Summing can't run over the actual playback
             // path (Android's system Equalizer/DynamicsProcessing effects) - the
-            // "Kopfhörer-Modus" switch instead folds HeadphoneComfortCurve into
+            // "Headphone mode" switch instead folds HeadphoneComfortCurve into
             // the real band-EQ curve, so this must show up in the applied
             // bandGainsDb, not just in a database flag.
             val viewModel = createViewModel(emptyList())
@@ -961,7 +961,7 @@ class MainViewModelTest {
             )
         }
 
-    // --- Chat feature (item 1 of "setz alle Punkte um"): headphone-mode flag ---
+    // --- Chat feature (item 1 of "implement all the points"): headphone-mode flag ---
 
     @Test
     fun `speaker route defaults headphone acoustics to false`() =

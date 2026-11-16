@@ -1,13 +1,13 @@
-# Store-Eintrag · Entwurf (AuraCurve-Roadmap 01, M.6)
+# Store listing · draft
 
-**Stand:** 15.11.2026, Entwurf. Gilt für die Store-Variante (`com.auracurve.app`): Equalizer, Klangkette und Player für eigene Dateien. **Kein** SoundCloud, Spotify, Link-Import oder Selbst-Update. Solange SoundCloud nicht zugestimmt hat, darf der Text keinen Dienst nennen, den die App nicht anbindet.
+**Status:** 15 Nov 2026, draft. Applies to `com.auracurve.app`: equalizer, sound chain and a player for the user's own files. **No** SoundCloud, Spotify, link import or self-update. The text must not name any service the app does not connect to.
 
-**Regeln aus der Marke und den Leitplanken:**
-- Name **AuraCurve**, Slogan *Feel the bass. Rule the sound.*, Fußnote *Music player, bass enhancement, advanced EQ.*
-- Nicht mit „systemweit“ werben: Der Equalizer hängt sich an Apps, die ihre Audio-Sitzung melden. Deshalb „your music apps“ bzw. „deine Musik-Apps“, mit dem Hinweis, dass nicht jede App mitmacht.
-- Keine Versprechen zu Klangqualität in Zahlen, solange sie nicht gemessen sind (Roadmap 03).
+**Brand rules:**
+- Name **AuraCurve**, slogan *Feel the bass. Rule the sound.*, footer line *Music player, bass enhancement, advanced EQ.*
+- Do not advertise "system-wide": the equalizer attaches to apps that report their audio session. Hence "your music apps", with the note that not every app cooperates.
+- No numeric sound-quality claims until they have been measured.
 
-Hauptsprache ist Englisch (die App ist nur auf Englisch), dazu eine deutsche Übersetzung des Eintrags.
+The primary language is English (the app is English-only). A German (de-DE) translation of the listing text follows below; it is store copy for German users, not documentation.
 
 ---
 
@@ -56,17 +56,17 @@ No account, no ads, no tracking. Your presets, profiles and playlists stay on yo
 Music player, bass enhancement, advanced EQ.
 ```
 
-(Etwa 1.500 Zeichen, genug Luft für spätere Funktionen.)
+(About 1,500 characters, leaving room for later features.)
 
 ---
 
-## Deutsch (de-DE) · Übersetzung des Eintrags
+## German (de-DE) · translated store copy
 
-**App-Name** (max. 30): `AuraCurve: Bass-EQ & Player` (27)
+**App name** (max. 30): `AuraCurve: Bass-EQ & Player` (27)
 
-**Kurzbeschreibung** (max. 80): `Musikplayer, Bassverstärkung, präziser Equalizer.` (49)
+**Short description** (max. 80): `Musikplayer, Bassverstärkung, präziser Equalizer.` (49)
 
-**Ausführliche Beschreibung:**
+**Full description:**
 
 ```text
 Feel the bass. Rule the sound.
@@ -103,20 +103,20 @@ Kein Konto, keine Werbung, kein Tracking. Presets, Profile und Playlists bleiben
 Musikplayer, Bassverstärkung, präziser Equalizer.
 ```
 
-**Hinweis:** Die App selbst ist nur auf Englisch. Google Play zeigt den deutschen Eintrag trotzdem an; im Text steht nichts, was eine deutsche Oberfläche verspricht.
+**Note:** The app itself is English-only. Google Play still shows the German listing; nothing in the text promises a German interface.
 
 ---
 
-## Grafiken
+## Graphics
 
-| Element | Vorgabe | Stand |
+| Asset | Requirement | Status |
 |---|---|---|
-| Titelgrafik | 1024 × 500 px, ohne Rahmen, Bild 06 mit „Bass you can see and steer.“ (M.5) | offen, Bild 06 liegt nicht im Repository |
-| App-Symbol | 512 × 512 px, 32-Bit-PNG | offen |
-| Bildschirmfotos | mind. 2, Telefon; aus der Store-Variante | offen; erst nach dem Gerätetest der Store-Variante |
+| Feature graphic | 1024 × 500 px, no border, with "Bass you can see and steer." | open |
+| App icon | 512 × 512 px, 32-bit PNG | draft: `docs/store/icon-512.png` |
+| Screenshots | at least 2, phone, from this build | open; after the device test |
 
-## Vor dem Einreichen prüfen
+## Check before submitting
 
-- [ ] Jede Funktion im Text in der Store-Variante am Gerät gesehen (besonders „Profil je Ausgang“, „Klang je App“, Android Auto, AutoEQ-Import).
-- [ ] Link zur Datenschutzerklärung (Entwurf: [`PRIVACY_POLICY_DRAFT.md`](PRIVACY_POLICY_DRAFT.md)) öffentlich erreichbar.
-- [ ] Kategorie *Musik & Audio*, Inhaltsbewertung, Zielgruppe ausgefüllt.
+- [ ] Every feature in the text seen on a device in this build (especially "profile per output", "sound per app", Android Auto, AutoEQ import).
+- [ ] Link to the privacy policy (draft: [`PRIVACY_POLICY_DRAFT.md`](PRIVACY_POLICY_DRAFT.md)) publicly reachable.
+- [ ] Category *Music & Audio*, content rating and target audience filled in.

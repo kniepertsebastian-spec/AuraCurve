@@ -1,38 +1,32 @@
 package com.auracurve.app.dsp
 
-// STATUS: fertig und getestet (CrossfeedTest), aber nirgends angeschlossen. Ob die Klasse
-// über den eigenen Wiedergabepfad des Players genutzt oder gelöscht wird, ist offen und wird
-// mit P4-4 entschieden (Roadmap 03); bis dahin bewusst nicht gelöscht (Roadmap 01, P0-6).
+// STATUS: finished and tested (CrossfeedTest), but not connected anywhere. Whether the class
+// is used through the player's own playback path or deleted is still open; until then it is
+// deliberately kept.
 //
-// Priorisierte Umsetzungsliste aus dem Nothing/Dirac-Opteo-Chat, Punkt 5:
-// Über Lautsprecher hört jedes Ohr beide Kanäle - zeitversetzt, gedämpft und
-// gefiltert durch den Umweg um den Kopf ("akustisches Übersprechen"). Bei
-// Kopfhörern fehlt das komplett: jedes Ohr bekommt nur seinen eigenen Kanal,
-// was auf Dauer unnatürlich und ermüdend wirken kann. Crossfeed simuliert
-// diesen fehlenden Übersprech-Effekt, indem ein tiefpassgefilterter Anteil
-// des jeweils anderen Kanals zugemischt wird (natürliches Übersprechen ist
-// durch die Kopfbeugung vor allem für tiefere/mittlere Frequenzen relevant,
-// nicht für Höhen - daher der Tiefpass, ähnlich dem bs2b-Algorithmus mit
-// typischerweise ~700 Hz Grenzfrequenz).
+// Prioritised implementation list from the Nothing/Dirac Opteo chat, item 5:
+// Through speakers each ear hears both channels - delayed, attenuated and filtered by the
+// path around the head ("acoustic crosstalk"). With headphones this is missing entirely:
+// each ear gets only its own channel, which can feel unnatural and tiring over time.
+// Crossfeed simulates the missing crosstalk by mixing in a low-pass filtered part of the
+// other channel (because of diffraction around the head, natural crosstalk matters mainly
+// for low and mid frequencies, not for treble - hence the low-pass, similar to the bs2b
+// algorithm with a typical cutoff of ~700 Hz).
 //
-// Bewusst *kein* Ersatz für BassMonoSummer (Punkt 2): Der mischt Bassanteile
-// unterhalb einer sehr niedrigen Grenzfrequenz zu echtem Mono zusammen (löst
-// Phasenprobleme), Crossfeed hier mischt nur einen *Teil* des jeweils anderen
-// Kanals über einen deutlich höheren Frequenzbereich bei (verändert das
-// Stereobild, ersetzt es nicht) - unterschiedliche Zwecke, beide unabhängig
-// voneinander nutzbar.
+// Deliberately *not* a replacement for BassMonoSummer (item 2): that one sums the bass below
+// a very low cutoff to true mono (solving phase problems), while crossfeed here only blends in
+// a *part* of the other channel over a much wider frequency range (it changes the stereo image
+// rather than replacing it) - different purposes, each usable independently.
 //
-// Wie BassMonoSummer eine Referenzimplementierung, nur gegen
-// synthetische Testsignale offline geprüft (siehe CrossfeedTest), nicht auf
-// echter Hardware verifiziert. Sollte laut App-Logik nur aktiv sein, wenn
-// MainViewModel.effectiveHeadphoneAcoustics (Punkt 1) true ist - diese reine
-// DSP-Klasse kennt AudioRoute aber nicht (würde eine Android-Abhängigkeit in
-// :core ziehen) und verlässt sich stattdessen einfach auf `enabled`, das der
-// Aufrufer entsprechend setzt.
+// Like BassMonoSummer a reference implementation, only checked offline against synthetic
+// test signals (see CrossfeedTest), not verified on real hardware. According to the app logic
+// it should only be active when MainViewModel.effectiveHeadphoneAcoustics (item 1) is true -
+// but this pure DSP class does not know AudioRoute (that would pull an Android dependency
+// into :core) and simply relies on `enabled`, which the caller sets accordingly.
 data class CrossfeedSettings(
     val enabled: Boolean = false,
     val cutoffHz: Float = 700f,
-    // 0..1: wie stark der andere Kanal zugemischt wird.
+    // 0..1: how strongly the other channel is mixed in.
     val amount: Float = 0.5f,
 ) {
     fun clamped(): CrossfeedSettings =
@@ -63,8 +57,8 @@ class Crossfeed(
         settings = newSettings.clamped()
     }
 
-    // Muss mit genau einem Stereo-Sample-Paar pro Aufruf, in Stream-
-    // Reihenfolge, aufgerufen werden - siehe BiquadFilterState.
+    // Must be called with exactly one stereo sample pair per call, in stream
+    // order - see BiquadFilterState.
     fun process(
         left: Float,
         right: Float,

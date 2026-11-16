@@ -1,17 +1,15 @@
 package com.auracurve.app.autoeq
 
-// Feature-Idee aus dem Nothing/Dirac-Opteo-Chat ("Mein Kopfhörer", Punkt 8):
-// gleicht einen erkannten Bluetooth-/USB-Gerätenamen (siehe AudioRoute.name in
-// :app - AndroidAudioRouteRepository liest dort bereits device.productName aus)
-// gegen BuiltInAutoEqCatalog ab, um ein passendes Korrekturprofil vorzuschlagen.
-// Bewusst nur ein *Vorschlag*, kein automatischer Import: Kabelgebundene
-// Kopfhörer liefern über Android so gut wie nie einen Produktnamen (nur den
-// generischen Typ), und selbst bei Bluetooth-Geräten mit echtem Namen ist
-// Fuzzy-Matching nie sicher genug für einen stillen Auto-Import - der
-// Aufrufer muss die Bestätigung selbst einholen.
+// Feature idea from the Nothing/Dirac Opteo chat ("My headphones", item 8): matches a
+// detected Bluetooth/USB device name (see AudioRoute.name in :app - AndroidAudioRouteRepository
+// already reads device.productName there) against BuiltInAutoEqCatalog to suggest a fitting
+// correction profile. Deliberately only a *suggestion*, no automatic import: wired headphones
+// almost never report a product name through Android (only the generic type), and even for
+// Bluetooth devices with a real name fuzzy matching is never reliable enough for a silent
+// automatic import - the caller has to ask for confirmation itself.
 object AutoEqCatalogMatcher {
-    // Unterhalb dieser Konfidenz wird kein Vorschlag gemacht - ein falscher
-    // Vorschlag ist schlimmer als gar keiner.
+    // Below this confidence no suggestion is made - a wrong suggestion is worse than
+    // none at all.
     private const val MIN_CONFIDENCE = 0.6
 
     fun findBestMatch(
@@ -39,11 +37,10 @@ object AutoEqCatalogMatcher {
 
     private fun normalize(name: String): String = name.lowercase().replace(Regex("[^a-z0-9]"), "")
 
-    // Enthaltensein zuerst - deckt sowohl "das Modell steckt als Teilstring im
-    // (oft länger/anders formatierten) Bluetooth-Namen" als auch den
-    // umgekehrten Fall ab. Fällt sonst auf Levenshtein-Ähnlichkeit zurück, für
-    // knapp daneben liegende Schreibweisen (OEM-Firmware mangelt Namen gerne
-    // auf eigene Art ab).
+    // Containment first - covers both "the model is a substring of the (often longer or
+    // differently formatted) Bluetooth name" and the reverse case. Otherwise falls back to
+    // Levenshtein similarity, for spellings that are slightly off (OEM firmware likes to
+    // mangle names in its own way).
     private fun similarity(
         a: String,
         b: String,

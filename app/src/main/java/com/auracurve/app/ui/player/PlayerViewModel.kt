@@ -139,7 +139,7 @@ class PlayerViewModel
         }
 
         fun signInSpotify() {
-            // The client id typed in the field counts even if "Speichern" was not tapped.
+            // The client id typed in the field counts even if "Save" was not tapped.
             controller.openSpotifySignIn()?.let { problem -> fail(problem) }
         }
 

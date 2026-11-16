@@ -76,8 +76,8 @@ class AndroidAudioEngine
 
         // Tracks the session a Retrying/Error cycle belongs to, so a stale retry
         // timer that fires after the session already changed/disappeared can
-        // recognize it's obsolete (docs/STATE_MACHINE.md §4, "Timer-Abbruch").
-        // Also what the manual "Erneut versuchen" button (retry()) re-attaches to.
+        // recognize it's obsolete (docs/STATE_MACHINE.md §4, "timer cancellation").
+        // Also what the manual "Try again" button (retry()) re-attaches to.
         @Volatile
         private var currentSessionId: Int? = null
 
@@ -86,7 +86,7 @@ class AndroidAudioEngine
         // Serializes attach/detach/apply so a fast run of UI events (e.g. dragging
         // a band slider while a route change triggers a re-attach) can't interleave
         // and leave the Equalizer/DynamicsProcessing instances in a half-updated
-        // state (roadmap.md M5: "Schutz vor Parameter-Sprüngen und Race Conditions").
+        // state (roadmap.md M5: "protection against parameter jumps and race conditions").
         // Also now guards the retry state machine's transitions.
         private val mutex = Mutex()
 
@@ -237,8 +237,8 @@ class AndroidAudioEngine
                 isAttached.set(true)
                 // Only claim Active once apply() has actually succeeded - never
                 // set it optimistically before that (roadmap-2026.md M1 acceptance
-                // criterion: "Die UI behauptet nie 'Aktiv', wenn apply()
-                // fehlgeschlagen ist"). applyInternal()'s own failure path already
+                // criterion: "the UI never claims 'Active' when apply()
+                // has failed"). applyInternal()'s own failure path already
                 // transitions to LostControl/Retrying if this fails.
                 return applyInternal(_currentSettings.value, session.sessionId)
             } catch (e: UnsupportedOperationException) {

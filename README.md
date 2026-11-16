@@ -56,7 +56,7 @@ Release signing reads `hardbasseq.releaseStoreFile`, `hardbasseq.releaseStorePas
 | File | Description |
 |---|---|
 | `docs/ARCHITECTURE.md` | Audio engine and service architecture. |
-| `docs/adr/` | Decisions behind the Kotlin/KSP/Hilt build setup. |
+| `docs/adr/` | Architecture decision records (Kotlin/KSP/Hilt build setup). |
 | `docs/STORE_LISTING.md` | Draft of the Play Store listing. |
 | `docs/PRIVACY_POLICY_DRAFT.md` | Draft privacy policy (not legally reviewed). |
 | `docs/licenses/Barlow-OFL.txt` | License of the bundled Barlow font. |

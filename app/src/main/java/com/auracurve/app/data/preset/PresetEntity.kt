@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 // Only ever holds custom (user-saved) presets - built-ins stay compile-time
 // constants (BuiltInPresets.all) and are never written here, matching the M2
-// acceptance criterion "Built-ins bleiben unveränderlich". The whole domain
+// acceptance criterion "built-ins stay immutable". The whole domain
 // Preset is stored as one validated JSON blob (see PresetJsonSerializer)
 // rather than one column per field: it reuses that already-tested
 // (de)serialization/validation logic directly for the "corrupted data can't

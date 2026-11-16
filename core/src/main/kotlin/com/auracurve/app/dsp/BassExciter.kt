@@ -4,44 +4,45 @@ import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.sqrt
 
-// Virtual Bass: psychoakustische Bass-Erweiterung (vgl. Waves MaxxBass). Ein kleiner Treiber
-// kann 40 Hz oft gar nicht abstrahlen, egal wie stark man dort anhebt. Diese Klasse erzeugt aus
-// dem Bassanteil Obertöne (Oktave und Duodezime), die der Treiber wiedergeben kann; das Gehör
-// ergänzt den fehlenden Grundton dazu ("missing fundamental"). Das Original bleibt vollständig
-// erhalten, die Obertöne werden zugemischt.
+// Virtual Bass: psychoacoustic bass extension (compare Waves MaxxBass). A small driver often
+// cannot radiate 40 Hz at all, however much it is boosted there. This class generates
+// harmonics (octave and twelfth) from the bass content that the driver can reproduce; the ear
+// fills in the missing fundamental ("missing fundamental"). The original is kept in full, the
+// harmonics are mixed in.
 //
-// Neuaufbau Roadmap 03, P4-3. Konzept, Messwerte und Abwägungen: docs/DSP_VIRTUAL_BASS.md.
-// Signalfluss pro Sample:
-// 1. Bass isolieren: Hochpass 20 Hz (2. Ordnung) und Butterworth-Tiefpass 4. Ordnung bei
-//    cutoffHz. Die steile Flanke hält Stimmen und Gitarren aus dem Generator heraus.
-// 2. Hilbert-Paar (HilbertAllpassPair): I und Q sind 90° verschoben. Die Hüllkurve
-//    A = sqrt(I² + Q²) ist sofort da und welligkeitsfrei, I/A und Q/A sind cos und sin der Phase.
-// 3. Kennlinie: Tschebyschow-Polynome auf der normierten Phase,
-//        A · (w2 · cos 2θ + w3 · cos 3θ)  mit  cos 2θ = c² - s²,  cos 3θ = c · (c² - 3s²).
-//    Ein Ton ergibt genau eine zweite und eine dritte Harmonische, keine weiteren und keinen
-//    Gleichanteil. thirdHarmonicShare verteilt die Oberton-Leistung: w2 = sqrt(1 - share),
-//    w3 = sqrt(share); die Gesamtleistung bleibt beim Verschieben gleich.
-//    Weil die Kennlinie mit A skaliert, ist der Oberton-Anteil bei jedem Pegel gleich groß - die
-//    alte tanh-Sättigung machte ihn bei leisen Stellen um bis zu 8 dB stärker.
-// 4. Hüllkurvenfolger (Attack 10 ms, Release 150 ms) auf A steuert ein weiches Gate: unter
-//    -66 dBFS Basspegel keine Obertöne, ab -54 dBFS volle Stärke. So bekommen Rauschen,
-//    Hallfahnen und Ausklänge keinen eigenen Oberton-Teppich.
-// 5. Bandpass für die Obertöne: Hochpass 65 Hz (2. Ordnung) gegen Reste unterhalb des Nutzbands,
-//    Tiefpass bei 3 · cutoffHz (2. Ordnung), damit die dritte Harmonische des höchsten
-//    isolierten Grundtons gerade noch durchkommt, aber nichts in die Mitten läuft.
-// 6. Zumischen mit mix · OUTPUT_TRIM.
+// Rebuilt in roadmap 03, P4-3.
+// Signal flow per sample:
+// 1. Isolate the bass: 20 Hz high-pass (2nd order) and a 4th-order Butterworth low-pass at
+//    cutoffHz. The steep slope keeps voices and guitars out of the generator.
+// 2. Hilbert pair (HilbertAllpassPair): I and Q are 90° apart. The envelope
+//    A = sqrt(I² + Q²) is available immediately and ripple-free; I/A and Q/A are the cos and sin
+//    of the phase.
+// 3. Transfer curve: Chebyshev polynomials on the normalised phase,
+//        A · (w2 · cos 2θ + w3 · cos 3θ)  with  cos 2θ = c² - s²,  cos 3θ = c · (c² - 3s²).
+//    A tone yields exactly one 2nd and one 3rd harmonic, nothing else and no DC.
+//    thirdHarmonicShare splits the harmonic power: w2 = sqrt(1 - share), w3 = sqrt(share); the
+//    total power stays the same when the share is moved.
+//    Because the curve scales with A, the harmonic share is the same at every level - the old
+//    tanh saturation made it up to 8 dB stronger in quiet passages.
+// 4. An envelope follower (attack 10 ms, release 150 ms) on A drives a soft gate: no harmonics
+//    below a bass level of -66 dBFS, full strength from -54 dBFS. This way noise, reverb tails
+//    and decays do not get a harmonic carpet of their own.
+// 5. Band-pass for the harmonics: 65 Hz high-pass (2nd order) against residue below the useful
+//    band, low-pass at 3 · cutoffHz (2nd order) so the 3rd harmonic of the highest isolated
+//    fundamental just passes but nothing leaks into the mids.
+// 6. Mix in with mix · OUTPUT_TRIM.
 //
-// Referenzimplementierung, offline gegen synthetische Testsignale geprüft (BassExciterTest,
-// HilbertAllpassPairTest), nicht auf echter Hardware gehört. Arbeitet mit normalisierten
-// Float-Samples (-1..1); :core bleibt Android-frei, die PCM16-Konvertierung macht PlayerDspPcm16.
+// Reference implementation, checked offline against synthetic test signals (BassExciterTest,
+// HilbertAllpassPairTest), not listened to on real hardware. Works on normalised float samples
+// (-1..1); :core stays free of Android, the PCM16 conversion is done by PlayerDspPcm16.
 data class BassExciterSettings(
     val enabled: Boolean = false,
-    // Nur unterhalb dieser Frequenz wird der Bassanteil zur Obertonerzeugung herangezogen.
+    // Only bass content below this frequency is used to generate harmonics.
     val cutoffHz: Float = 150f,
-    // 0..1: wie stark der erzeugte Oberton-Anteil zum Original zugemischt wird.
+    // 0..1: how strongly the generated harmonics are mixed into the original.
     val mix: Float = 0.5f,
-    // 0..1: Anteil der dritten Harmonischen an der Oberton-Leistung. 0 = nur Oktave (weich),
-    // 1 = nur Duodezime (härter, mehr "Punch"). Standard: überwiegend Oktave.
+    // 0..1: share of the 3rd harmonic in the harmonic power. 0 = octave only (soft),
+    // 1 = twelfth only (harder, more "punch"). Default: mostly octave.
     val thirdHarmonicShare: Float = DEFAULT_THIRD_HARMONIC_SHARE,
 ) {
     fun clamped(): BassExciterSettings =
@@ -98,8 +99,8 @@ class BassExciter(
         updateWeights()
     }
 
-    // Muss mit exakt einem Sample pro Aufruf, in Stream-Reihenfolge, aufgerufen werden - die
-    // Filter tragen ihren Zustand zwischen Aufrufen weiter.
+    // Must be called with exactly one sample per call, in stream order - the filters carry
+    // their state from one call to the next.
     fun process(
         inputSample: Float,
         sampleRateHz: Float,

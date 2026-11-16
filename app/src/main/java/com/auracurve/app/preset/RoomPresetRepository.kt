@@ -19,8 +19,8 @@ class RoomPresetRepository
     ) : PresetRepository {
         override val customPresets: Flow<List<Preset>> =
             dao.getAllFlow().map { entities ->
-                // M2 acceptance criterion: "ein beschädigtes Nutzerpreset kann die
-                // App nicht am Start hindern" - one row failing PresetJsonSerializer's
+                // M2 acceptance criterion: "a corrupted user preset cannot keep
+                // the app from starting" - one row failing PresetJsonSerializer's
                 // validation (bad JSON, out-of-range gain, empty curve, ...) is
                 // dropped and logged rather than crashing this flow (and with it,
                 // every screen that collects it).

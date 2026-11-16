@@ -3,7 +3,7 @@ package com.auracurve.app.audio
 /**
  * Encapsulates `AudioEffect.queryEffects()` so callers never touch the
  * Android audio-effects framework directly (see roadmap section 7,
- * "Zentrale Schnittstellen").
+ * "central interfaces").
  */
 interface AudioEffectRepository {
     /** The effect type UUIDs this repository can recognize on this platform. */

@@ -99,8 +99,8 @@ import kotlin.math.abs
 // Session 16. Lowered further to 0.3 in Session 17 at the user's explicit request for
 // more aggressive kicks/less pre-cancellation, after 0.5 still felt too subtle - the
 // Limiter is still unchanged and remains the actual clipping safety net. Lowered again
-// to 0.2, then to 0.1, both in Session 24 (same sitting - the first cut "soll ja
-// knallen"), alongside a matching loosening of the MBC makeup gain
+// to 0.2, then to 0.1, both in Session 24 (same sitting - the first cut "it's supposed
+// to bang"), alongside a matching loosening of the MBC makeup gain
 // (AndroidAudioEngine.applyInternal). At 0.1 this pre-cancellation stage is nearly a
 // no-op; the Limiter downstream is now doing almost all of the actual safety work and
 // is the only thing standing between a hot preset and true clipping - still an
@@ -122,15 +122,15 @@ private const val PLAYER_CURVE_MIN_HZ = 20f
 private const val PLAYER_CURVE_MAX_HZ = 20_000f
 private const val PLAYER_CURVE_STEP = 1.12f
 
-// roadmap-2026.md M5: "Extreme Boosts werden nicht still angewandt, sondern
-// begrenzt oder bestätigt" - an imported correction curve peaking above this
+// roadmap-2026.md M5: "extreme boosts are not applied silently but limited
+// or confirmed" - an imported correction curve peaking above this
 // needs an explicit confirmation in the import preview, not just a silent clamp
 // (AutoEqParser/CorrectionProfileJsonSerializer already hard-clamp to ±24 dB;
 // this is a much lower, "are you sure" style threshold on top of that).
 private const val EXTREME_BOOST_WARNING_THRESHOLD_DB = 12f
 
-// M5 "Importvorschau mit Quelle, Frequenzbereich, maximalem Boost und benötigtem
-// Headroom anzeigen" - shown to the user before anything is written to
+// M5 "show an import preview with source, frequency range, maximum boost and
+// required headroom" - shown to the user before anything is written to
 // CorrectionProfileRepository.
 data class CorrectionProfileImportPreview(
     val profile: CorrectionProfile,
@@ -284,7 +284,7 @@ class MainViewModel
         // used for effectiveHeadphoneAcoustics/HeadphoneComfortCurve.
         val currentLevelDb: StateFlow<Float> = volumeRepository.currentLevelDb
 
-        // Chat feature (item 1 of "setz alle Punkte um", not a roadmap-2026.md
+        // Chat feature (item 1 of "implement all the points", not a roadmap-2026.md
         // milestone): null until applyDeviceProfileForRoute() loads whatever the
         // current route's DeviceProfileEntity has saved (or confirms there's none
         // yet) - see effectiveHeadphoneAcoustics for how null resolves to a
@@ -304,7 +304,7 @@ class MainViewModel
         private val _activePreset = MutableStateFlow<Preset>(BuiltInPresets.CleanPunch)
         val activePreset: StateFlow<Preset> = _activePreset.asStateFlow()
 
-        // M2: "manuelle Änderung eines Presets automatisch als Custom markieren" -
+        // M2: "mark a manually changed preset as custom automatically" -
         // true once a band/macro edit has moved processingSettings away from what
         // freshly selecting activePreset would produce. Cleared by selecting a
         // preset (including re-selecting the current one, i.e. "reset") or by
@@ -368,7 +368,7 @@ class MainViewModel
         private val _pendingDeletePreset = MutableStateFlow<Preset?>(null)
         val pendingDeletePreset: StateFlow<Preset?> = _pendingDeletePreset.asStateFlow()
 
-        // M3 "Mein Kopfhörer": the headphone/speaker correction curve, combined with
+        // M3 "My headphones": the headphone/speaker correction curve, combined with
         // activePreset ("Klangstil") via CurveComposer before mapping to hardware
         // bands - see recalculateBandGains().
         private val _activeCorrectionProfile = MutableStateFlow(BuiltInCorrectionProfiles.None)
@@ -381,7 +381,7 @@ class MainViewModel
                 .map { custom -> BuiltInCorrectionProfiles.all + custom }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, BuiltInCorrectionProfiles.all)
 
-        // "Mein Kopfhörer" auto-detection (chat feature, not a roadmap-2026.md
+        // "My headphones" auto-detection (chat feature, not a roadmap-2026.md
         // milestone): a suggestion only, never a silent auto-import - see
         // AutoEqCatalogMatcher's own doc comment for why. Cleared whenever the
         // route already has an explicit DeviceProfileRepository binding (the user
@@ -395,8 +395,8 @@ class MainViewModel
 
         private val dismissedSuggestionRouteIds = mutableSetOf<String>()
 
-        // M5 "Importvorschau ... anzeigen" / "Extreme Boosts werden nicht still
-        // angewandt, sondern begrenzt oder bestätigt": set by
+        // M5 "show an import preview" / "extreme boosts are not applied silently
+        // but limited or confirmed": set by
         // previewCorrectionProfileImport(), cleared by confirm/cancel. Nothing is
         // saved to CorrectionProfileRepository until the user actually confirms.
         private val _pendingImportPreview = MutableStateFlow<CorrectionProfileImportPreview?>(null)
@@ -414,7 +414,7 @@ class MainViewModel
         private val _compare = MutableStateFlow<CompareState?>(null)
         val compare: StateFlow<CompareState?> = _compare.asStateFlow()
 
-        // Sound goal ("Gesang vorne", "Mehr Power", ...): a small curve on top of the genre preset.
+        // Sound goal ("Vocals forward", "More power", ...): a small curve on top of the genre preset.
         private val _activeGoal = MutableStateFlow(SoundGoal.BALANCED)
         val activeGoal: StateFlow<SoundGoal> = _activeGoal.asStateFlow()
 
@@ -424,7 +424,7 @@ class MainViewModel
             persistLiveSettings()
         }
 
-        // "Kopfhörer-Power": wirkt nur im Kopfhörer-Modus.
+        // "Headphone power": only takes effect in headphone mode.
         private val _headphonePower = MutableStateFlow(HeadphonePower())
         val headphonePower: StateFlow<HeadphonePower> = _headphonePower.asStateFlow()
 
@@ -480,7 +480,7 @@ class MainViewModel
             viewModelScope.launch {
                 restoreSavedState()
             }
-            // M3 "Profilwechsel bei Bluetooth-, USB- und Lautsprecherwechsel": the
+            // M3 "switch profile when Bluetooth, USB or speaker output changes": the
             // starting route is handled inside restoreSavedState() itself (it may
             // still be resolving when this collector's first emission fires); this
             // only reacts to routes that change *after* that, e.g. a Bluetooth
@@ -540,7 +540,7 @@ class MainViewModel
                     updateSuggestedCorrectionProfile(route)
                 }
             }
-            // Makes the "Kopfhörer-Modus" switch (and automatic route-based
+            // Makes the "headphone mode" switch (and automatic route-based
             // defaulting) actually change the applied EQ curve - combinedCurve()
             // already reads effectiveHeadphoneAcoustics.value itself, but nothing
             // re-triggers recalculateBandGains() when *only* this changes (e.g. a
@@ -596,8 +596,8 @@ class MainViewModel
                 // A saved activePresetId/activeCorrectionProfileId that no longer
                 // resolves (its custom entry was deleted from another install, say)
                 // just keeps this ViewModel's own compiled-in default - not an
-                // error, nothing to recover, per M2's "beschädigtes ... kann die
-                // App nicht am Start hindern".
+                // error, nothing to recover, per M2's "a corrupted ... cannot keep
+                // the app from starting".
             }
 
             hasRestoredState = true
@@ -639,7 +639,7 @@ class MainViewModel
 
         // Looks up whether `route` has its own saved voicing/correction binding
         // (DeviceProfileRepository) and, if so, switches to it - the M3 conflict
-        // rule ("manuelle Auswahl gilt bis zum nächsten Route-Wechsel") means this
+        // rule ("a manual choice holds until the next route change") means this
         // is the *only* place a route is allowed to change the active
         // preset/correction; selectPreset()/selectCorrectionProfile() never do.
         private suspend fun applyDeviceProfileForRoute(route: AudioRoute) {
@@ -833,7 +833,7 @@ class MainViewModel
             selectPreset(PresetIntensityResolver.resolve(genre, intensity))
         }
 
-        // M3 "Mein Kopfhörer": switches the active correction curve, independent of
+        // M3 "My headphones": switches the active correction curve, independent of
         // the voicing (selectPreset above) it gets combined with.
         fun selectCorrectionProfile(profile: CorrectionProfile) {
             _activeCorrectionProfile.value = profile
@@ -881,8 +881,8 @@ class MainViewModel
         // M5: parses `text` (a file the caller already read, e.g. via a SAF
         // OpenDocument picker) and, on success, populates pendingImportPreview for
         // the UI to show before anything is saved - see confirmCorrectionProfileImport.
-        // Malformed/empty input surfaces through importError instead (M5: "Ungültige,
-        // doppelte oder extreme Punkte verständlich melden").
+        // Malformed/empty input surfaces through importError instead (M5: "report invalid,
+        // duplicate or extreme points understandably").
         fun previewCorrectionProfileImport(
             sourceName: String,
             text: String,
@@ -933,7 +933,7 @@ class MainViewModel
             _importError.value = null
         }
 
-        // M5 "Import, Export und Teilen ... integrieren": the JSON the UI hands to
+        // M5 "integrate import, export and sharing": the JSON the UI hands to
         // a Share Sheet intent (ACTION_SEND) - the same validated format
         // previewCorrectionProfileImport()/CorrectionProfileRepository already use,
         // so re-importing an exported file round-trips losslessly.
@@ -1140,8 +1140,8 @@ class MainViewModel
             _showSourcePicker.value = false
         }
 
-        // Backs the "Erneut versuchen" button shown when engineState is Error
-        // (roadmap-2026.md M1: "Fehler: konkrete nächste Handlung anbieten").
+        // Backs the "Try again" button shown when engineState is Error
+        // (roadmap-2026.md M1: "errors: offer a concrete next action").
         fun retryAttach() {
             viewModelScope.launch {
                 audioEngine.retry()
@@ -1252,7 +1252,7 @@ class MainViewModel
                 parametricCurve = parametricCurve,
             )
 
-        // M3 "Zielkurven kombinieren" - see CurveCalculator.combinedCurve.
+        // M3 "combine target curves" - see CurveCalculator.combinedCurve.
         private fun combinedCurve(includeSubsonic: Boolean = true): List<TargetPoint> =
             CurveCalculator.combinedCurve(curveInputs(), includeSubsonic)
 

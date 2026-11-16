@@ -47,8 +47,8 @@ object HeadroomCalculator {
         )
     }
 
-    // Chat feature ("Presets für Aggressive/Very Aggressive nicht übersteuern
-    // lassen"): a plain parametric EQ (Equalizer APO, no downstream limiter)
+    // Chat feature ("do not let the Aggressive/Very Aggressive presets
+    // clip"): a plain parametric EQ (Equalizer APO, no downstream limiter)
     // cascades real peaking biquads, and cascaded filters' dB responses ADD -
     // several closely-spaced, heavily-boosted bass bands (e.g. 31/45/63/90/
     // 125/175 Hz at Q=1.4) can combine to a true peak well above any single

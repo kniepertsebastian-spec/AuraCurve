@@ -46,7 +46,7 @@ import com.auracurve.app.ui.theme.SonicRule
 import com.auracurve.app.ui.theme.SonicSteel
 import com.auracurve.app.ui.theme.spacing
 
-// "Verknüpfte Dienste": the music accounts and their connection state, in one place of their own
+// "Linked services": the music accounts and their connection state, in one place of their own
 // (sound profiles are not accounts and live in the Equalizer).
 @Composable
 fun LinkedServicesScreen(

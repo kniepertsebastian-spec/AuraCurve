@@ -4,7 +4,7 @@ import com.auracurve.app.correction.CorrectionProfile
 import com.auracurve.app.preset.TargetPoint
 
 // roadmap-2026.md M5: an AutoEQ file describes a headphone/speaker CORRECTION
-// curve ("Mein Kopfhörer", M3), meant to be combined with a separate voicing
+// curve ("My headphones", M3), meant to be combined with a separate voicing
 // preset ("Klangstil") via CurveComposer - not a Preset/VoicingPreset itself, so
 // this returns CorrectionProfile.
 //

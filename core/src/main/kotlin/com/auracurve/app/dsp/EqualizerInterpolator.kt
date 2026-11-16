@@ -106,7 +106,7 @@ object EqualizerInterpolator {
             delta -= macroPunchDb * 0.5f
         }
 
-        // Macro Härte: High mid 2.5k - 6k (clamped +2 dB max)
+        // Macro hardness (macroHaerteDb): high mid 2.5k - 6k (clamped +2 dB max)
         if (freqHz in 2500f..6000f) {
             delta += macroHaerteDb.coerceAtMost(2.0f)
         }

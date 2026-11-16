@@ -5,37 +5,31 @@ import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-// Priorisierte Umsetzungsliste aus dem Nothing/Dirac-Opteo-Chat, Punkt 4:
-// Ein normaler ("reaktiver") Limiter kann eine Pegelspitze erst reduzieren,
-// *nachdem* er sie gesehen hat - bei einem plötzlichen Transienten (Kick!)
-// reicht die Reaktionszeit oft nicht, um wirklich vor der Spitze zu greifen,
-// ohne hörbar zu "pumpen". Ein Lookahead-Limiter verzögert das Ausgangssignal
-// um ein paar Millisekunden und kann die Gain-Reduktion dadurch schon
-// *bevor* die Spitze am Ausgang ankommt einleiten.
+// Prioritised implementation list from the Nothing/Dirac Opteo chat, item 4:
+// A normal ("reactive") limiter can only reduce a peak *after* it has seen it - with a
+// sudden transient (kick!) the reaction time is often too short to really act before the
+// peak without audible "pumping". A lookahead limiter delays the output by a few
+// milliseconds and can therefore start the gain reduction *before* the peak reaches the
+// output.
 //
-// Die Absenkung wird über das Lookahead-Fenster *gerampt* (Minimum über das
-// Fenster, danach gleitender Mittelwert über dieselbe Länge): Die Verstärkung
-// erreicht genau beim Eintreffen der Spitze den nötigen Wert, ohne Sprung. Ein
-// Sprung der Verstärkung wäre selbst ein breitbandiger Klick - genau das, was
-// ein Limiter bei jedem Kick vermeiden soll.
+// The reduction is *ramped* over the lookahead window (minimum over the window, then a
+// moving average over the same length): the gain reaches the required value exactly when
+// the peak arrives, without a jump. A jump in gain would itself be a broadband click -
+// exactly what a limiter is meant to avoid on every kick.
 //
-// Zusätzlich: ein reiner Sample-Peak-Limiter sieht nicht, dass der
-// *rekonstruierte* Analogpegel zwischen zwei Samples höher liegen kann als
-// jedes einzelne Sample selbst zeigt ("Inter-Sample-Peak") - bei stark
-// bassgeboostetem Signal ein reales Clipping-Risiko auf dem DAC. Geschätzt wird
-// das mit 4-fach-Interpolation (Catmull-Rom über vier Nachbarsamples) - die
-// kann, anders als der Mittelwert zweier Samples, über die Samples hinaus
-// schwingen. Keine normgerechte True-Peak-Messung nach ITU-R BS.1770 (die
-// bräuchte einen längeren Polyphasenfilter), aber sie fängt den typischen
-// Überschwinger zwischen zwei hohen Samples.
+// In addition: a pure sample-peak limiter does not see that the *reconstructed* analogue
+// level between two samples can be higher than any single sample shows ("inter-sample
+// peak") - with a heavily bass-boosted signal a real clipping risk on the DAC. It is
+// estimated with 4x interpolation (Catmull-Rom over four neighbouring samples), which,
+// unlike the mean of two samples, can overshoot the samples. Not a standard-compliant
+// true-peak measurement per ITU-R BS.1770 (that would need a longer polyphase filter), but
+// it catches the typical overshoot between two high samples.
 //
-// Mehrkanalig arbeitet der Limiter gekoppelt: eine Verstärkung für alle
-// Kanäle, bestimmt vom lautesten. Getrennte Limiter je Kanal würden das
-// Stereobild bei jeder Spitze verschieben.
+// With several channels the limiter works linked: one gain for all channels, set by the
+// loudest. Separate limiters per channel would shift the stereo image on every peak.
 //
-// Wie BassExciter eine Referenzimplementierung, nur gegen
-// synthetische Testsignale offline geprüft (siehe LookaheadLimiterTest),
-// nicht auf echter Hardware verifiziert.
+// Like BassExciter a reference implementation, only checked offline against synthetic
+// test signals (see LookaheadLimiterTest), not verified on real hardware.
 data class LookaheadLimiterSettings(
     val enabled: Boolean = true,
     val thresholdDb: Float = -1f,
@@ -114,9 +108,9 @@ class LookaheadLimiter(
         settings = newSettings.clamped()
     }
 
-    // Muss mit exakt einem Sample pro Aufruf, in Stream-Reihenfolge, aufgerufen
-    // werden. Gibt 0f zurück, solange der Lookahead-Puffer noch nicht voll ist
-    // (Startlatenz) - siehe Klassendokumentation. Nur für einkanalige Limiter.
+    // Must be called with exactly one sample per call, in stream order. Returns 0f while
+    // the lookahead buffer is not yet full (start-up latency) - see the class
+    // documentation. Single-channel limiters only.
     fun process(
         inputSample: Float,
         sampleRateHz: Float,

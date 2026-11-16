@@ -1,10 +1,11 @@
 package com.auracurve.app.preset
 
-// Klangziele: Auswahl nach gewünschtem Ergebnis statt nach Genre. Ein Ziel ist eine kleine, additive
-// Korrekturkurve über dem gewählten Genre-Preset (wie die Kopfhörer-Kurve), also unabhängig vom Genre.
-// "Gesang vorne" ist bewusst subtil: etwas mehr Präsenz (2-4 kHz) und weniger Maskierung durch den
-// Bereich um 300 Hz - es isoliert keinen Gesang aus dem Mix und repariert keine schlechte Aufnahme.
-// Die sichtbaren Namen und Beschreibungen stehen in den App-Ressourcen (Deutsch/Englisch).
+// Sound goals: choosing by the desired result instead of by genre. A goal is a small, additive
+// correction curve on top of the selected genre preset (like the headphone curve), so it is
+// independent of the genre. "Vocals forward" is deliberately subtle: a little more presence
+// (2-4 kHz) and less masking from the region around 300 Hz - it does not isolate vocals from the
+// mix and does not repair a bad recording. The visible names and descriptions are in the app's
+// resources.
 enum class SoundGoal(
     val id: String,
     val curve: List<TargetPoint>,
