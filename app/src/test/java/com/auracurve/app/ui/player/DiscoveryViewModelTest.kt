@@ -7,7 +7,6 @@ import com.auracurve.app.discovery.DiscoveryUpdater
 import com.auracurve.app.integration.LinkImportResult
 import com.auracurve.app.integration.LoadResult
 import com.auracurve.app.integration.PlayerController
-import com.auracurve.app.player.model.ExternalTrackInfo
 import com.auracurve.app.player.model.LibraryOverview
 import com.auracurve.app.player.model.TrackItem
 import com.auracurve.app.player.playback.NowPlaying
@@ -258,22 +257,6 @@ class DiscoveryViewModelTest {
         override suspend fun resolveLink(url: String): LinkImportResult = unused()
 
         override fun isSoundCloudSignedIn(): Boolean = false
-
-        override suspend fun describeExternalLink(url: String): LoadResult<ExternalTrackInfo> = unused()
-
-        override suspend fun fetchSpotifyTrackPage(trackId: String): LoadResult<String> = unused()
-
-        override fun spotifyClientId(): String = unused()
-
-        override fun saveSpotifyClientId(clientId: String) = unused()
-
-        override fun isSpotifySignedIn(): Boolean = unused()
-
-        override fun openSpotifySignIn(): String? = unused()
-
-        override fun signOutSpotify() = unused()
-
-        override suspend fun fetchSpotifyPlaylistPage(playlistId: String): LoadResult<String> = unused()
 
         override suspend fun searchSoundCloud(
             query: String,

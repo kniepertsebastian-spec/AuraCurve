@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Checks that an APK does (or does not) contain the online-access code of the "full" flavor.
+"""Checks that the store APK contains no online access that is not cleared for this build.
 
-AuraCurve roadmap 02, task 1.3: the "store" flavor is what Google Play and SoundCloud get to see.
-It must not contain the unofficial SoundCloud access, the Spotify/YouTube link resolution or the
-self-update - not hidden, but absent from the code. This script looks for markers of that code in
-the DEX files and the binary manifest of an APK.
+AuraCurve is published without a streaming service until the provider has approved the use case
+(SoundCloud only through its official API). This script fails if the DEX files or the binary
+manifest of an APK contain markers of access that must not ship: SoundCloud's non-public web API,
+web client ids, an embedded web sign-in, Spotify/YouTube link resolution, a self-update or online
+catalogs that are not cleared. Not hidden, but absent from the code.
 
-    check_store_apk.py store.apk                    # fails if any marker is present
-    check_store_apk.py --expect-present full.apk    # fails if a marker is missing (checks the check)
+    check_store_apk.py app.apk    # fails if any marker is present
 """
 
 import sys
@@ -15,18 +15,18 @@ import zipfile
 
 # Markers in the compiled code (class names and string constants).
 DEX_MARKERS = [
-    "api-v2.soundcloud.com",  # SoundCloud's internal API (SoundCloudClient)
-    "client_id=",  # the scraped SoundCloud web client id (ApiUrl)
-    "SoundCloudLoginActivity",  # sign-in in an embedded WebView
+    "api-v2.soundcloud.com",  # SoundCloud's non-public web API (only the official API is allowed)
+    "client_id=",  # a client id in a request URL
+    "SoundCloudLoginActivity",  # sign-in in an embedded WebView instead of the system browser
     "SpotifyLoginActivity",
     "SpotifyApiClient",
-    "youtube.com/oembed",  # YouTube link resolution (LinkResolver)
+    "youtube.com/oembed",  # YouTube link resolution
     "ReleaseUpdateClient",  # self-update from GitHub releases
-    "open.spotify.com",  # Spotify link parsing (ShareLink, SpotifyPlaylistPage)
+    "open.spotify.com",  # Spotify link parsing
     "SpotifyImportPlan",  # Spotify playlist import
-    "SoundCloudLinkImport",  # link import of pasted and shared text
-    "api.audius.co",  # Audius tab (full flavor only until its use in the store is cleared)
-    "radio-browser.info",  # Radio tab (Radio Browser directory)
+    "SoundCloudLinkImport",  # link import outside the official API
+    "api.audius.co",  # Audius catalog (not cleared)
+    "radio-browser.info",  # Radio Browser directory (not cleared)
 ]
 
 # Markers in AndroidManifest.xml (binary XML stores its strings as UTF-8 or UTF-16).
@@ -53,22 +53,13 @@ def found_markers(apk_path):
 
 
 def main(argv):
-    expect_present = "--expect-present" in argv
     paths = [a for a in argv if not a.startswith("--")]
     if len(paths) != 1:
         print(__doc__)
         return 2
     hits = found_markers(paths[0])
-    if expect_present:
-        missing = [m for m in [f"dex: {d}" for d in DEX_MARKERS] + [f"manifest: {m}" for m in MANIFEST_MARKERS] if m not in hits]
-        if missing:
-            print(f"{paths[0]}: expected markers are missing - the check would not notice them:")
-            print("\n".join(f"  {m}" for m in missing))
-            return 1
-        print(f"{paths[0]}: all {len(hits)} markers present (the check can see them)")
-        return 0
     if hits:
-        print(f"{paths[0]}: contains code that belongs to the full flavor only:")
+        print(f"{paths[0]}: contains online access that is not cleared for this build:")
         print("\n".join(f"  {h}" for h in hits))
         return 1
     print(f"{paths[0]}: no online-access markers")

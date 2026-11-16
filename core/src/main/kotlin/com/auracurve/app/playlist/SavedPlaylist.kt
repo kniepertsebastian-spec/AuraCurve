@@ -12,9 +12,9 @@ data class SavedTrack(
     val durationMs: Long = 0L,
 )
 
-// A playlist kept on the device after importing a share link. Only the track
-// metadata is stored, never a stream URL: SoundCloud stream URLs are short-lived,
-// so the player resolves a fresh one by track id when a track actually plays.
+// A playlist kept on the device. Only the track metadata is stored, never a stream URL:
+// streaming addresses are short-lived, so the player resolves a fresh one by track id when
+// a track actually plays.
 @Serializable
 data class SavedPlaylist(
     val id: String,
@@ -22,7 +22,7 @@ data class SavedPlaylist(
     val sourceUrl: String? = null,
     val tracks: List<SavedTrack>,
     val createdAtMs: Long = 0L,
-    // Id of the copy in the user's SoundCloud account once it was sent there, so sending again
+    // Id of the copy in the user's streaming account once it was saved there, so sending again
     // updates that playlist instead of making a second one. Defaulted: older data still decodes.
     val soundCloudId: Long? = null,
 )

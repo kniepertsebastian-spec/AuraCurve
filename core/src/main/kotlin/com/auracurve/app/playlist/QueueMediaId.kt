@@ -5,8 +5,8 @@ package com.auracurve.app.playlist
 //
 // - The media id ("queue|<trackId>") has a prefix of its own, so it cannot be mistaken for
 //   an id of the car's browser (AutoMediaId) or of another app.
-// - The address is only a placeholder ("hardbasseq-sc://track/<trackId>"): SoundCloud's
-//   stream addresses expire, so the real one is looked up when ExoPlayer loads the entry
+// - The address is only a placeholder ("hardbasseq-sc://track/<trackId>"): streaming
+//   addresses expire, so the real one is looked up when ExoPlayer loads the entry
 //   (see ResolvingTrackMediaSource in :player).
 object QueueMediaId {
     const val STREAM_SCHEME = "hardbasseq-sc"

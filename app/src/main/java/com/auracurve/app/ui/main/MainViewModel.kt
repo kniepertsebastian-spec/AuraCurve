@@ -1158,8 +1158,8 @@ class MainViewModel
         }
 
         fun reopenPlayer() {
-            _lastPlayerSource.value = PlayerSource.SOUNDCLOUD
-            playerBridge.launchPlayer(PlayerSource.SOUNDCLOUD)
+            _lastPlayerSource.value = PlayerSource.BUILT_IN
+            playerBridge.launchPlayer(PlayerSource.BUILT_IN)
         }
 
         fun setBypass(bypass: Boolean) {

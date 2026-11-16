@@ -46,11 +46,11 @@ class DiagnosticsReportFormatterTest {
                 engineState = AudioEngineState.Active(123),
                 capabilities = capabilities,
                 route = route,
-                playerSource = "SOUNDCLOUD",
+                playerSource = "BUILT_IN",
             )
         assertTrue(active.contains("EQ Status: ACTIVE"))
         assertTrue(active.contains("Audio Session: attached to session 123"))
-        assertTrue(active.contains("Player: SOUNDCLOUD"))
+        assertTrue(active.contains("Player: BUILT_IN"))
         assertTrue(active.contains("Last Error: none"))
 
         val failed =

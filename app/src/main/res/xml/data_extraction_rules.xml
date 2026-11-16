@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12 and newer. Presets, playlists, settings and the SoundCloud and Spotify sign-in
-  (sc_auth_prefs.xml, spotify_auth.xml) go to a new phone, by cloud backup and by cable/wireless
-  transfer, so nobody has to sign in again after a restore (open_questions.md Q16).
+  Android 12 and newer. Presets, playlists and settings go to a new phone, by cloud backup and by
+  cable/wireless transfer, so nothing has to be set up again after a restore.
 
-  The sign-in tokens are only as safe as the backup, so the cloud backup is skipped on a phone
-  that cannot encrypt it with the lock screen (no lock screen set).
+  The cloud backup is skipped on a phone that cannot encrypt it with the lock screen (no lock
+  screen set). A future sign-in token must be excluded here or stored so that it is not part of
+  the backup.
 -->
 <data-extraction-rules>
     <cloud-backup disableIfNoEncryptionCapabilities="true" />

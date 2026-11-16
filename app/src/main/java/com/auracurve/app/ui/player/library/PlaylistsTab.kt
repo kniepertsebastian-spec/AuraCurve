@@ -40,33 +40,28 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.auracurve.app.R
-import com.auracurve.app.playlist.PlayerFormat
 import com.auracurve.app.playlist.SavedPlaylist
-import com.auracurve.app.ui.player.BridgeUiState
 import com.auracurve.app.ui.player.EmptyState
 import com.auracurve.app.ui.player.ImportUiState
 import com.auracurve.app.ui.player.LibraryUiState
-import com.auracurve.app.ui.player.PendingImport
 import com.auracurve.app.ui.player.PlayerViewModel
 import com.auracurve.app.ui.theme.SonicRule
 import com.auracurve.app.ui.theme.SonicSteel
 import com.auracurve.app.ui.theme.spacing
 
-// The "Playlists" tab of the player screen: importing from a link, the playlists saved on the
-// device, matches for a shared YouTube/Spotify link and the signed-in user's SoundCloud library.
+// The "Playlists" tab of the player screen: files from the device, the playlists saved on the
+// device and, with a streaming service, a link field and the signed-in user's library.
 fun LazyListScope.playlistsTabItems(
     viewModel: PlayerViewModel,
     playlists: List<SavedPlaylist>,
     importState: ImportUiState,
-    pendingImport: PendingImport?,
-    bridgeState: BridgeUiState?,
     signedIn: Boolean,
     libraryState: LibraryUiState,
     currentTrackId: Long?,
     playedIds: Set<Long>,
     onNewPlaylist: () -> Unit,
     onMerge: () -> Unit,
-    // False in the "store" flavor (AuraCurve roadmap 02, 1.3): no link import, no SoundCloud.
+    // False in this build: no streaming service, so no link field and no account actions.
     onlineSources: Boolean = true,
 ) {
     item {
@@ -91,7 +86,7 @@ fun LazyListScope.playlistsTabItems(
                     color = SonicSteel,
                 )
                 Spacer(modifier = Modifier.height(spacing.small))
-                // P5-7: files on the device, as a second source next to SoundCloud.
+                // P5-7: files on the device.
                 val context = LocalContext.current
                 val pickFiles =
                     rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -112,7 +107,7 @@ fun LazyListScope.playlistsTabItems(
                         value = linkText,
                         onValueChange = { linkText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("https://soundcloud.com/…") },
+                        placeholder = { Text(stringResource(R.string.playlists_link_placeholder)) },
                         singleLine = true,
                     )
                 }
@@ -146,26 +141,6 @@ fun LazyListScope.playlistsTabItems(
                         ) {
                             Text(stringResource(R.string.playlists_add_button))
                         }
-                    }
-                }
-                // A long Spotify import that stopped (app closed, no connection): go on or drop it.
-                // While one is running the saved position is only a checkpoint, not a pause.
-                pendingImport?.takeIf { onlineSources && !importState.isLoading }?.let { pending ->
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text =
-                                stringResource(
-                                    R.string.spotify_import_paused,
-                                    pending.title,
-                                    pending.nextIndex,
-                                    pending.total,
-                                ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = SonicSteel,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(onClick = viewModel::resumeSpotifyImport) { Text(stringResource(R.string.action_resume)) }
-                        TextButton(onClick = viewModel::discardSpotifyImport) { Text(stringResource(R.string.action_discard)) }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -212,53 +187,6 @@ fun LazyListScope.playlistsTabItems(
                 actionLabel = stringResource(R.string.playlists_new_button),
                 onAction = { onNewPlaylist() },
             )
-        }
-    }
-    bridgeState?.let { bridge ->
-        item {
-            val spacing = MaterialTheme.spacing
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, SonicRule),
-            ) {
-                Column(modifier = Modifier.padding(spacing.medium)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = stringResource(R.string.bridge_found_title, bridge.label),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(onClick = viewModel::dismissBridge) { Text(stringResource(R.string.action_close)) }
-                    }
-                    Text(
-                        text =
-                            if (bridge.startedAutomatically) {
-                                stringResource(R.string.bridge_best_playing)
-                            } else {
-                                stringResource(R.string.bridge_no_sure_match)
-                            },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = SonicSteel,
-                    )
-                    bridge.matches.forEach { match ->
-                        LibraryRow(
-                            title = match.track.title,
-                            subtitle =
-                                listOf(
-                                    match.track.artist,
-                                    PlayerFormat.duration(match.track.durationMs),
-                                    "${(match.score * 100).toInt()} %",
-                                ).joinToString(" · "),
-                            onPlay = { viewModel.playBridgeMatch(match) },
-                            showCover = true,
-                            artworkUrl = match.track.artworkUrl,
-                        )
-                    }
-                }
-            }
         }
     }
     if (signedIn) {

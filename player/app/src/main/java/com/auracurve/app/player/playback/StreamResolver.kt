@@ -6,7 +6,7 @@ import java.io.IOException
 data class ResolvedStream(
     val url: String,
     val isHls: Boolean,
-    // Only SoundCloud's ~30 second preview of a Go track, not the full length.
+    // Only a short preview, not the full length (the service offers no more to this user).
     val isPreview: Boolean,
 )
 

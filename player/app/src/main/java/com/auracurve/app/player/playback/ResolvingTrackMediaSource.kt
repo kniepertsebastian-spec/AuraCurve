@@ -27,7 +27,7 @@ import java.util.concurrent.Executors
  * the playing track, or the next one while the current one is still playing (preloading).
  * Anything else goes to [delegate] unchanged.
  *
- * Why not a ResolvingDataSource: SoundCloud serves a track either as a plain file or as an HLS
+ * Why not a ResolvingDataSource: a streaming service may serve a track either as a plain file or as an HLS
  * playlist, and which ExoPlayer source fits (progressive or HLS) is only known after the lookup.
  * A data source can swap the address but not the kind of source.
  *

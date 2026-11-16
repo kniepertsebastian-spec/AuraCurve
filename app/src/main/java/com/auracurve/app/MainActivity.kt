@@ -71,8 +71,8 @@ class MainActivity : ComponentActivity() {
         if (intent?.action == PlayerLaunch.ACTION_OPEN_PLAYER) playerViewModel.requestNowPlaying()
     }
 
-    // "Share" from the SoundCloud app (or any app) with this one as the target: the
-    // shared text carries the link, which the player screen imports.
+    // "Share" from another app with this one as the target: the shared text carries the link,
+    // which the player screen hands to the link import (not available in this build).
     private fun handleShareIntent(intent: Intent?) {
         // A tile or the widget asked for something while no screen of the app was alive.
         QuickCommandIntents.commandOf(intent)?.let { command ->

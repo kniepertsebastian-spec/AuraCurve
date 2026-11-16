@@ -6,7 +6,7 @@ import org.junit.Test
 
 class IsoTimeTest {
     @Test
-    fun `parses soundcloud timestamps`() {
+    fun `parses upload timestamps`() {
         assertEquals(0L, IsoTime.parseMillis("1970-01-01T00:00:00Z"))
         assertEquals(20_724L * 86_400_000L, IsoTime.parseMillis("2026-09-28T00:00:00Z"))
         assertEquals(20_724L * 86_400_000L + 12 * 3_600_000L + 34 * 60_000L + 56_000L, IsoTime.parseMillis("2026-09-28T12:34:56Z"))

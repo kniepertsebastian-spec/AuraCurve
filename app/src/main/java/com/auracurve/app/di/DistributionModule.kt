@@ -14,7 +14,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-// Flavor "store": no online service built in (AuraCurve roadmap 02, 1.3).
+// No streaming service in this build: every online seam gets its "not available" version.
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DistributionModule {

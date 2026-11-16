@@ -13,7 +13,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.auracurve.app.R
 
-// "PREVIEW" next to a title that only plays SoundCloud's 30-second preview. An outlined text
+// "PREVIEW" next to a title that only plays a short preview (the service offers no full length for it). An outlined text
 // tag, so it reads without color.
 @Composable
 fun PreviewTag(modifier: Modifier = Modifier) {
