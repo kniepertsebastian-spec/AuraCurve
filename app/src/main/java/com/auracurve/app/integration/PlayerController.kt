@@ -32,7 +32,7 @@ sealed interface LinkImportResult {
     ) : LinkImportResult
 }
 
-// Result of loading something from the user's SoundCloud account: the value, or a
+// Result of loading something from the user's streaming account: the value, or a
 // message that can be shown as is.
 sealed interface LoadResult<out T> {
     data class Ok<T>(

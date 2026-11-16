@@ -45,7 +45,7 @@ import com.auracurve.app.ui.theme.SonicPaper
 import com.auracurve.app.ui.theme.SonicSteel
 import com.auracurve.app.ui.theme.spacing
 
-// One tappable entry of the SoundCloud library: tap anywhere (or the play button) to
+// One tappable entry of the account library: tap anywhere (or the play button) to
 // load its tracks and play them as the queue.
 @Composable
 internal fun LibraryRow(
@@ -95,7 +95,7 @@ internal fun PlaylistRow(
     onPlay: () -> Unit,
     onPlayTrack: (Int) -> Unit,
     onDelete: () -> Unit,
-    // Null hides the action (the "store" flavor has no SoundCloud account to send to).
+    // Null hides the action (no streaming account to save to in this build).
     onSendToSoundCloud: (() -> Unit)?,
     onRemoveTrack: (Long) -> Unit,
     onPlayNext: (SavedTrack) -> Unit,

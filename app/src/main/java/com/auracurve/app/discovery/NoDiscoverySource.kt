@@ -7,7 +7,7 @@ import com.auracurve.app.player.model.TrackItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
-// Flavor "store": new uploads are looked up on SoundCloud, which this variant does not use. The
+// No streaming service in this build, so there is nothing to look new uploads up on. The
 // weekly refresh is not scheduled here (AuraCurveApplication), so this only answers a stray call.
 class NoDiscoverySource
     @Inject

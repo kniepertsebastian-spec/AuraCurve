@@ -2,9 +2,7 @@ package com.auracurve.app.link
 
 import java.text.Normalizer
 
-// What to look for on SoundCloud when someone shares a song from YouTube or Spotify:
-// an artist (when known) and a title, cleaned of the decoration those services put
-// into titles ("(Official Video)", "[HD]", "| Channel", ...).
+// What to look for in search results: an artist (when known) and a title.
 data class TrackQuery(
     val artist: String?,
     val title: String,
@@ -15,75 +13,7 @@ data class TrackQuery(
     val label: String get() = if (artist.isNullOrBlank()) title else "$artist - $title"
 }
 
-object TrackQueryBuilder {
-    // Bracketed decoration that says nothing about which song it is. Version markers
-    // that do (remix, edit, vip, bootleg, ...) are deliberately not in this list.
-    private val noise =
-        Regex(
-            "official|video|audio|lyric|lyrics|visuali[sz]er|\\bhd\\b|\\bhq\\b|\\b4k\\b|\\bmv\\b|clip|explicit|" +
-                "out now|free download|premiere|full (song|track|version)|with lyrics|music",
-            RegexOption.IGNORE_CASE,
-        )
-    private val bracketGroup = Regex("[(\\[{]([^)\\]}]*)[)\\]}]")
-    private val dashLike = Regex("\\s*[\\u2013\\u2014\\u2012\\u2015]\\s*")
-    private val channelSuffix = Regex("\\s*(-\\s*topic|vevo|official|records|music)\\s*$", RegexOption.IGNORE_CASE)
-
-    fun fromYouTube(
-        videoTitle: String,
-        channel: String?,
-    ): TrackQuery {
-        val cleaned = cleanTitle(videoTitle)
-        val dash = cleaned.indexOf(" - ")
-        if (dash > 0) {
-            val artist = cleaned.substring(0, dash).trim()
-            val title = cleaned.substring(dash + 3).trim()
-            if (artist.isNotEmpty() && title.isNotEmpty()) return TrackQuery(artist, title)
-        }
-        val pipe = cleaned.indexOf(" | ")
-        if (pipe > 0) {
-            val title = cleaned.substring(0, pipe).trim()
-            val artist = cleaned.substring(pipe + 3).trim()
-            if (artist.isNotEmpty() && title.isNotEmpty()) return TrackQuery(artist, title)
-        }
-        val artist = channel?.let { cleanChannel(it) }?.takeIf { it.isNotBlank() }
-        return TrackQuery(artist, cleaned.ifBlank { videoTitle.trim() })
-    }
-
-    // A track whose artist and title are known separately (a Spotify playlist entry).
-    // Several artists ("A, B") are searched by the first one; the rest rarely helps.
-    fun fromArtistAndTitle(
-        artist: String,
-        title: String,
-    ): TrackQuery {
-        val firstArtist =
-            artist
-                .replace('\u00a0', ' ')
-                .split(',', '&')
-                .first()
-                .trim()
-        val cleanedTitle = cleanTitle(title).ifBlank { title.trim() }
-        return TrackQuery(firstArtist.takeIf { it.isNotEmpty() }, cleanedTitle)
-    }
-
-    // Spotify's preview data carries the track name only, no artist.
-    fun fromTitleOnly(title: String): TrackQuery = TrackQuery(null, cleanTitle(title).ifBlank { title.trim() })
-
-    private fun cleanTitle(raw: String): String {
-        val normalizedDashes = raw.replace(dashLike, " - ")
-        val withoutNoise =
-            bracketGroup.replace(normalizedDashes) { match ->
-                if (noise.containsMatchIn(match.groupValues[1])) " " else match.value
-            }
-        return withoutNoise
-            .replace(Regex("\\s+"), " ")
-            .trim()
-            .trim('"', '\'', '“', '”', '|', '-', ' ')
-    }
-
-    private fun cleanChannel(raw: String): String = channelSuffix.replace(raw.trim(), "").trim()
-}
-
-// Ranks SoundCloud search results for a TrackQuery. The service's search is fuzzy and
+// Ranks search results for a TrackQuery. A streaming service's search is fuzzy and
 // returns plenty of loosely related tracks, so the results are scored by how many of
 // the query's words they actually contain. Uploader names often differ from the
 // artist (labels, promo channels), so the artist may match in the title or the

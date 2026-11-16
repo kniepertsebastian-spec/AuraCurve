@@ -31,7 +31,7 @@ data class DiscoveryUiState(
 )
 
 // "Interesting new uploads": watched artists, the weekly playlist built from their
-// recent SoundCloud uploads, swipe-away, and playing it.
+// recent uploads (found by search on the streaming service), swipe-away, and playing it.
 @HiltViewModel
 class DiscoveryViewModel
     @Inject

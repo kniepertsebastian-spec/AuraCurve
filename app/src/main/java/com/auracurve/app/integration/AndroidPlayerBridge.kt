@@ -16,7 +16,7 @@ class AndroidPlayerBridge
     constructor(
         @param:ApplicationContext private val context: Context,
     ) : PlayerBridge {
-        // SoundCloud is the only source and the player screen is the same for every source, so
+        // The built-in player is the only source and its screen is the same for every source, so
         // [source] needs no extra: the Compose player in MainActivity is brought forward.
         override fun launchPlayer(source: PlayerSource) {
             context.startActivity(PlayerLaunch.openPlayerIntent(context))

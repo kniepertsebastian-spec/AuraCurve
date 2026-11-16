@@ -434,7 +434,7 @@ private fun PlayerSourcePickerDialog(
         title = { Text(stringResource(R.string.source_picker_title)) },
         text = { Text(stringResource(R.string.source_picker_text)) },
         confirmButton = {
-            TextButton(onClick = { onSourceChosen(PlayerSource.SOUNDCLOUD) }) {
+            TextButton(onClick = { onSourceChosen(PlayerSource.BUILT_IN) }) {
                 Text(stringResource(R.string.source_builtin_player))
             }
         },

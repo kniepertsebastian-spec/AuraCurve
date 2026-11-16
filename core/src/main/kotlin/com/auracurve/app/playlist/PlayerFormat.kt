@@ -15,7 +15,7 @@ object PlayerFormat {
         }
     }
 
-    // SoundCloud serves artwork as ...-large.jpg (100x100), which looks blurry on the
+    // Some services serve artwork as ...-large.jpg (100x100), which looks blurry on the
     // full player; the same image exists at other sizes under a different suffix.
     // Anything that does not follow that pattern is returned unchanged.
     fun largeArtwork(url: String?): String? = url?.replace("-large.", "-t500x500.")

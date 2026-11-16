@@ -52,7 +52,7 @@ dependencies {
 
     // Media3 / ExoPlayer
     implementation(libs.media3.exoplayer)
-    // HLS streams: SoundCloud offers some full-length (Go) streams only that way.
+    // HLS streams (some streaming services offer tracks only that way).
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.ui)
     // MediaLibraryService: notification, lock screen, Bluetooth, Wear and Android Auto from one session.

@@ -65,19 +65,17 @@ fun PlayerScreen(
     val currentTrackId = queue.getOrNull(nowPlaying?.queueIndex ?: -1)?.id
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
-    val pendingImport by viewModel.pendingImport.collectAsStateWithLifecycle()
     val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
     val libraryState by viewModel.libraryState.collectAsStateWithLifecycle()
-    val bridgeState by viewModel.bridgeState.collectAsStateWithLifecycle()
     val discoveryState by discovery.state.collectAsStateWithLifecycle()
     val discoveryUi by discovery.uiState.collectAsStateWithLifecycle()
     val searchState by viewModel.searchState.collectAsStateWithLifecycle()
     val requestedTab by viewModel.requestedTab.collectAsStateWithLifecycle()
-    // Flavor "store" (AuraCurve roadmap 02, 1.3): no online source, so no search, no new uploads,
-    // no linked services - only the playlists with the files from the device.
+    // No streaming service in this build, so no search, no new uploads and no linked
+    // services - only the playlists with the files from the device.
     val onlineSources = BuildConfig.ONLINE_SOURCES
     var tab by rememberSaveable { mutableStateOf(if (onlineSources) PlayerTab.SEARCH else PlayerTab.PLAYLISTS) }
-    // Radio and Audius (full flavor only): their own view models and items, see rememberCatalogTabs.
+    // Further online catalogs (none in this build), see rememberCatalogTabs.
     val catalog = rememberCatalogTabs(onPlayNext = viewModel::playNext, onAddToQueue = viewModel::addToQueue)
     val tabs = listOf(PlayerTab.SEARCH, PlayerTab.PLAYLISTS) + catalog.tabs
     var searchText by rememberSaveable { mutableStateOf("") }
@@ -213,8 +211,6 @@ fun PlayerScreen(
                     viewModel = viewModel,
                     playlists = playlists,
                     importState = importState,
-                    pendingImport = pendingImport,
-                    bridgeState = bridgeState,
                     signedIn = signedIn,
                     libraryState = libraryState,
                     currentTrackId = currentTrackId,

@@ -2,62 +2,10 @@ package com.auracurve.app.link
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TrackQueryTest {
-    @Test
-    fun `splits artist and title and drops decoration`() {
-        val q = TrackQueryBuilder.fromYouTube("Katy Perry - Roar (Official Video)", "KatyPerryVEVO")
-        assertEquals("Katy Perry", q.artist)
-        assertEquals("Roar", q.title)
-        assertEquals("Katy Perry Roar", q.searchText)
-        assertEquals("Katy Perry - Roar", q.label)
-    }
-
-    @Test
-    fun `drops several noise groups but keeps version markers`() {
-        val q = TrackQueryBuilder.fromYouTube("Angerfist - Criminally Insane [HD] (Miss K8 Remix) [Free Download]", null)
-        assertEquals("Angerfist", q.artist)
-        assertEquals("Criminally Insane (Miss K8 Remix)", q.title)
-    }
-
-    @Test
-    fun `handles en dashes`() {
-        val q = TrackQueryBuilder.fromYouTube("Artist – Song Name (Lyrics)", null)
-        assertEquals("Artist", q.artist)
-        assertEquals("Song Name", q.title)
-    }
-
-    @Test
-    fun `uses the channel as artist when the title has none and strips topic suffixes`() {
-        val q = TrackQueryBuilder.fromYouTube("Roar", "Katy Perry - Topic")
-        assertEquals("Katy Perry", q.artist)
-        assertEquals("Roar", q.title)
-    }
-
-    @Test
-    fun `pipe separated titles read title first`() {
-        val q = TrackQueryBuilder.fromYouTube("Roar | Katy Perry", null)
-        assertEquals("Katy Perry", q.artist)
-        assertEquals("Roar", q.title)
-    }
-
-    @Test
-    fun `a title with no artist anywhere stays title only`() {
-        val q = TrackQueryBuilder.fromYouTube("Some Unreleased Banger", null)
-        assertNull(q.artist)
-        assertEquals("Some Unreleased Banger", q.title)
-    }
-
-    @Test
-    fun `spotify titles have no artist`() {
-        val q = TrackQueryBuilder.fromTitleOnly("Roar (Official Audio)")
-        assertNull(q.artist)
-        assertEquals("Roar", q.title)
-    }
-
     @Test
     fun `an exact match scores higher than an unrelated or longer result`() {
         val query = TrackQuery("Katy Perry", "Roar")
@@ -104,17 +52,5 @@ class TrackQueryTest {
         assertTrue(TrackMatcher.mentionsArtist("Angerfist", "Drum Go Bang", "ANGERFIST"))
         assertFalse(TrackMatcher.mentionsArtist("Miss K8", "K8 alone", "x"))
         assertFalse(TrackMatcher.mentionsArtist("", "anything", "x"))
-    }
-
-    @Test
-    fun `builds a query from a playlist entry with several artists`() {
-        val query = TrackQueryBuilder.fromArtistAndTitle("Angerfist, Miss K8", "Drum Go Bang (Official Video)")
-        assertEquals("Angerfist", query.artist)
-        assertEquals("Drum Go Bang", query.title)
-    }
-
-    @Test
-    fun `a blank artist leaves the artist out`() {
-        assertNull(TrackQueryBuilder.fromArtistAndTitle("  ", "Song").artist)
     }
 }

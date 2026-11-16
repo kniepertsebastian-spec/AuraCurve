@@ -22,7 +22,7 @@ class DirectStreamTest {
         assertTrue(DirectStream.playsDirectly(LocalTrackId.of("content://x"), "content://x"))
         assertFalse(DirectStream.playsDirectly(own, "http://stream.example.com/live"))
         assertFalse(DirectStream.playsDirectly(own, null))
-        // A SoundCloud track (positive id) is always looked up, even if it carries an address.
+        // A streaming track (positive id) is always looked up, even if it carries an address.
         assertFalse(DirectStream.playsDirectly(42L, "https://cf-media.sndcdn.com/abc.mp3"))
     }
 }

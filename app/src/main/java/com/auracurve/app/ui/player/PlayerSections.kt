@@ -57,7 +57,7 @@ enum class PlayerTab(
     SEARCH(R.string.tab_search),
     PLAYLISTS(R.string.tab_playlists),
 
-    // Online catalogs of the full flavor (see rememberCatalogTabs); the store flavor has none.
+    // Further online catalogs (see rememberCatalogTabs); this build has none.
     RADIO(R.string.tab_radio),
     AUDIUS(R.string.tab_audius),
 }
@@ -86,8 +86,8 @@ fun PlayerTabs(
     }
 }
 
-// "SoundCloud ▾": the visible source switch. SoundCloud is the built-in player (this screen);
-// "other player" explains how Spotify & co. work.
+// The visible source switch, shown only with a streaming service (planned: SoundCloud through
+// the official API). "Other player" explains how processing for other music apps works.
 @Composable
 fun SourceSelector(onSelectSoundCloud: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }

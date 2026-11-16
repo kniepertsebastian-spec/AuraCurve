@@ -5,7 +5,7 @@
 
 An Android equalizer built for powerful, controlled bass: an interactive frequency-response curve, sound profiles, device-specific presets and a built-in player for audio files on the device.
 
-This repository is the store build of AuraCurve (application ID `com.auracurve.app`, intended for Google Play). It contains no SoundCloud, Spotify or YouTube access and no self-update.
+This repository is the store build of AuraCurve (application ID `com.auracurve.app`, intended for Google Play). It contains no SoundCloud, Spotify or YouTube access and no self-update. A SoundCloud integration through the official API is planned once SoundCloud has approved it (see `docs/DECISIONS.md`).
 
 ## Features
 
@@ -57,6 +57,7 @@ Release signing reads `hardbasseq.releaseStoreFile`, `hardbasseq.releaseStorePas
 |---|---|
 | `docs/ARCHITECTURE.md` | Audio engine and service architecture. |
 | `docs/adr/` | Architecture decision records (Kotlin/KSP/Hilt build setup). |
+| `docs/DECISIONS.md` | Decisions, including the status of the planned SoundCloud integration. |
 | `docs/STORE_LISTING.md` | Draft of the Play Store listing. |
 | `docs/PRIVACY_POLICY_DRAFT.md` | Draft privacy policy (not legally reviewed). |
 | `docs/licenses/Barlow-OFL.txt` | License of the bundled Barlow font. |

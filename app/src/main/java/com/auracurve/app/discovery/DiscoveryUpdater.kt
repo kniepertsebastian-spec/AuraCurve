@@ -8,7 +8,7 @@ import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// Where new uploads for an artist name come from (SoundCloud search).
+// Where new uploads for an artist name come from (a search on the streaming service).
 interface DiscoverySource {
     suspend fun recentUploads(artist: String): LoadResult<List<TrackItem>>
 
@@ -102,7 +102,7 @@ class DiscoveryUpdater
                         }
                     }
                 }
-                // Nothing could be asked at all (offline, SoundCloud down): keep what is
+                // Nothing could be asked at all (offline, service down): keep what is
                 // there and try again later instead of replacing it with an empty week.
                 if (failures == state.artists.size) return@withLock RefreshResult.Failed(firstError)
 

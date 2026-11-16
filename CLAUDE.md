@@ -4,7 +4,7 @@
 
 AuraCurve (formerly HardBass EQ) is an audio equalizer project focused on precise sound control, a powerful visual identity, and reliable audio processing.
 
-The main application is a native Android app built with Kotlin and Jetpack Compose. This repository is the **store build** (Google Play, `com.auracurve.app`): equalizer, sound chain and a player for files on the device. It must not contain unofficial SoundCloud access, Spotify/YouTube link resolution or a self-update; CI enforces this with `scripts/check_store_apk.py`.
+The main application is a native Android app built with Kotlin and Jetpack Compose. This repository is the **store build** (Google Play, `com.auracurve.app`): equalizer, sound chain and a player for files on the device. It must not contain SoundCloud access outside the official API, Spotify/YouTube link resolution or a self-update; CI enforces this with `scripts/check_store_apk.py`.
 
 **Primary goal:** Build a premium, technical, responsive audio-control experience that makes complex sound adjustments feel precise, understandable, and immediate.
 

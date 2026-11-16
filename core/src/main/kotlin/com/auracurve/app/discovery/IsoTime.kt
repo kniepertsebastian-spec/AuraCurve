@@ -1,6 +1,6 @@
 package com.auracurve.app.discovery
 
-// Upload timestamps as SoundCloud sends them ("2025-09-28T12:34:56Z", also the older
+// Upload timestamps as streaming APIs send them ("2025-09-28T12:34:56Z", also the older
 // "2025/09/28 12:34:56 +0000" form) to epoch milliseconds. Offsets and fractions are
 // ignored - the values are UTC, and day precision is all the "recent uploads" logic
 // needs.

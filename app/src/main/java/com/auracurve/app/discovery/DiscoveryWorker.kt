@@ -18,7 +18,7 @@ interface DiscoveryWorkerEntryPoint {
 // Runs every few hours and rebuilds the playlist when a new week has started - so
 // Monday's list is ready without opening the app. Android decides the exact moment
 // (battery, network); the work only runs with a connection. A failed attempt (offline,
-// SoundCloud down) is retried with backoff.
+// service down) is retried with backoff.
 class DiscoveryWorker(
     context: Context,
     params: WorkerParameters,

@@ -238,11 +238,11 @@ class MainViewModelTest {
             val viewModel = createViewModel(emptyList(), playerBridge)
             viewModel.setMasterEnabled(true)
 
-            viewModel.choosePlayerSource(PlayerSource.SOUNDCLOUD)
+            viewModel.choosePlayerSource(PlayerSource.BUILT_IN)
 
             assertFalse(viewModel.showSourcePicker.value)
             assertEquals(1, playerBridge.launchCount)
-            assertEquals(PlayerSource.SOUNDCLOUD, playerBridge.lastLaunchedSource)
+            assertEquals(PlayerSource.BUILT_IN, playerBridge.lastLaunchedSource)
         }
 
     @Test
@@ -296,7 +296,7 @@ class MainViewModelTest {
         }
 
     @Test
-    fun `reopening the player launches SoundCloud`() =
+    fun `reopening the player launches the built-in player`() =
         runTest {
             val playerBridge = FakePlayerBridge()
             val viewModel = createViewModel(emptyList(), playerBridge)
@@ -304,7 +304,7 @@ class MainViewModelTest {
             viewModel.reopenPlayer()
 
             assertEquals(1, playerBridge.launchCount)
-            assertEquals(PlayerSource.SOUNDCLOUD, playerBridge.lastLaunchedSource)
+            assertEquals(PlayerSource.BUILT_IN, playerBridge.lastLaunchedSource)
         }
 
     // --- M2: persistence and custom-preset workflow ---

@@ -12,14 +12,14 @@ import com.auracurve.app.playlist.QueueMediaId
 
 // A track as an entry of ExoPlayer's playlist (the play queue), and back. The entry carries
 // no stream address, only a placeholder with the track id (see QueueMediaId):
-// ResolvingTrackMediaSource asks SoundCloud for a fresh address when ExoPlayer loads it.
+// ResolvingTrackMediaSource asks the stream resolver for a fresh address when ExoPlayer loads it.
 object TrackMediaItems {
     // The list-size cover as the track had it; the metadata's artwork is the large one that the
     // notification, the lock screen and the car show.
     private const val EXTRA_ARTWORK_URL = "com.auracurve.app.artwork_url"
 
     fun toMediaItem(track: TrackItem): MediaItem {
-        // A file on the device, a radio station or an Audius track plays from its own address
+        // A file on the device plays from its own address
         // (nothing to look up; see DirectStream); everything else is the placeholder
         // ResolvingTrackMediaSource turns into a stream.
         val direct = track.streamUrl?.takeIf { DirectStream.playsDirectly(track.id, it) }

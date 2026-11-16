@@ -65,11 +65,11 @@ class AuraCurveApplication :
         // MainViewModel is created), so the session-open broadcast a player sends
         // is much less likely to be missed. See AudioSessionForegroundService.
         startSessionService()
-        // New uploads come from SoundCloud: only the "full" flavor has an online source.
+        // New uploads need a streaming service, which this build does not have.
         if (BuildConfig.ONLINE_SOURCES) scheduleDiscoveryRefresh()
     }
 
-    // Covers in the player (lists and the large one) come from SoundCloud's servers: kept in
+    // Covers in the player (lists and the large one) may come from a server: kept in
     // memory while scrolling and on disk across app starts, so they are not downloaded again.
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader

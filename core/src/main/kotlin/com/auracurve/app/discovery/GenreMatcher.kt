@@ -3,7 +3,7 @@ package com.auracurve.app.discovery
 import java.text.Normalizer
 
 // Decides whether an upload fits the genres the user wants, from the genre and tags
-// the uploader set on SoundCloud. Those are free text and inconsistent ("Uptempo
+// the uploader set. Those are free text and inconsistent ("Uptempo
 // Hardcore", "uptempo", "Hardcore Techno"), so matching is by whole words and
 // related scene names are treated as one family (a wish for "uptempo" also accepts
 // "hardcore" or "gabber").
@@ -39,7 +39,7 @@ object GenreMatcher {
             .replace(Regex("[^\\p{L}\\p{N}]+"), " ")
             .trim()
 
-    // SoundCloud's tag_list: space separated, multi-word tags in double quotes.
+    // A raw tag list: space separated, multi-word tags in double quotes.
     fun parseTags(raw: String): List<String> =
         Regex("\"([^\"]+)\"|(\\S+)")
             .findAll(raw)

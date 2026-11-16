@@ -139,7 +139,7 @@ class AppAutoCatalogTest {
         }
 
     @Test
-    fun `something in no playlist is searched on soundcloud`() =
+    fun `something in no playlist is searched on the streaming service`() =
         runTest {
             searchResult = listOf(item(7), item(8))
 

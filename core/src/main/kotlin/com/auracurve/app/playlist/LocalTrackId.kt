@@ -1,9 +1,9 @@
 package com.auracurve.app.playlist
 
 /**
- * Ids of tracks that come from files on the device instead of SoundCloud (roadmap 06, P5-7).
+ * Ids of tracks that come from files on the device instead of a streaming service (roadmap 06, P5-7).
  *
- * The queue, the now-playing state and the car browser all name a track by one `Long`. SoundCloud's
+ * The queue, the now-playing state and the car browser all name a track by one `Long`. Streaming
  * ids are positive; a local file gets a negative one derived from its address, so the two can never
  * collide and "is this a file on the device?" needs no extra field.
  */

@@ -42,7 +42,7 @@ class PlaybackFailurePolicyTest {
     @Test
     fun otherErrorsWhileOnline_areUnplayable() {
         assertEquals(PlaybackFailureKind.UNPLAYABLE, PlaybackFailureClassifier.classify(online = true))
-        // A plain IOException is what the SoundCloud client throws for an HTTP error status.
+        // A plain IOException is what a stream lookup throws for an HTTP error status.
         assertEquals(
             PlaybackFailureKind.UNPLAYABLE,
             PlaybackFailureClassifier.classify(online = true, cause = IOException("HTTP 404")),

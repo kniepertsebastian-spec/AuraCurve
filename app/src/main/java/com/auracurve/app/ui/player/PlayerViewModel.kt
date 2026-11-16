@@ -37,22 +37,7 @@ data class ImportUiState(
     val isError: Boolean = false,
 )
 
-// One SoundCloud search result for a song shared from YouTube / Spotify, with how well
-// it fits (0..1, see TrackMatcher).
-data class BridgeMatch(
-    val track: TrackItem,
-    val score: Double,
-)
-
-// What was found on SoundCloud for a shared YouTube / Spotify song. `startedAutomatically`
-// is true when the best match was sure enough to start playing by itself.
-data class BridgeUiState(
-    val label: String,
-    val matches: List<BridgeMatch>,
-    val startedAutomatically: Boolean,
-)
-
-// The SoundCloud search tab: the last query, its results and what to say when there are none.
+// The search tab: the last query, its results and what to say when there are none.
 enum class SearchOutcome { IDLE, RESULTS, NO_RESULTS, FAILED }
 
 data class SearchUiState(
@@ -63,14 +48,7 @@ data class SearchUiState(
     val errorDetail: String? = null,
 )
 
-// The Spotify sign-in as the player screen shows it: the client id of the user's own Spotify
-// developer app and whether they are signed in (needed to read all songs of long playlists).
-data class SpotifyAccountUi(
-    val clientId: String = "",
-    val signedIn: Boolean = false,
-)
-
-// The signed-in user's SoundCloud library as shown in the player screen.
+// The signed-in user's library as shown in the player screen.
 data class LibraryUiState(
     val isLoading: Boolean = false,
     val library: LibraryOverview? = null,
@@ -86,15 +64,11 @@ class PlayerViewModel
         private val playlistRepository: PlaylistRepository,
         private val texts: TextProvider,
         private val localTracks: LocalTrackReader = NoLocalTrackReader,
-        // Pasted and shared links: SoundCloudLinkImport in "full", NoLinkImport in "store".
+        // Pasted and shared links; this build has no link import (NoLinkImport).
         private val linkImport: LinkImport = NoLinkImport(),
     ) : ViewModel() {
         val nowPlaying: StateFlow<NowPlaying?> = controller.nowPlaying
         val queue: StateFlow<List<TrackItem>> = controller.queue
-
-        // A long Spotify import that did not finish (null when there is none).
-        val pendingImport: StateFlow<PendingImport?> =
-            linkImport.pending.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
         // Ids of the tracks that were started in the player (this app session).
         val playedIds: StateFlow<Set<Long>> = PlayedTracksState.ids
@@ -114,14 +88,11 @@ class PlayerViewModel
         private val _searchState = MutableStateFlow(SearchUiState())
         val searchState: StateFlow<SearchUiState> = _searchState.asStateFlow()
 
-        private val _bridgeState = MutableStateFlow<BridgeUiState?>(null)
-        val bridgeState: StateFlow<BridgeUiState?> = _bridgeState.asStateFlow()
-
         private val _importState = MutableStateFlow(ImportUiState())
         val importState: StateFlow<ImportUiState> = _importState.asStateFlow()
 
         init {
-            linkImport.attach(LinkImportSession(viewModelScope, _importState, _bridgeState))
+            linkImport.attach(LinkImportSession(viewModelScope, _importState))
         }
 
         // Set when a link was shared into the app from elsewhere or the playback notification
@@ -130,28 +101,9 @@ class PlayerViewModel
         private val _showPlayerRequest = MutableStateFlow(false)
         val showPlayerRequest: StateFlow<Boolean> = _showPlayerRequest.asStateFlow()
 
-        private val _spotifyAccount = MutableStateFlow(SpotifyAccountUi(controller.spotifyClientId(), controller.isSpotifySignedIn()))
-        val spotifyAccount: StateFlow<SpotifyAccountUi> = _spotifyAccount.asStateFlow()
-
-        fun saveSpotifyClientId(clientId: String) {
-            controller.saveSpotifyClientId(clientId)
-            refreshAccount()
-        }
-
-        fun signInSpotify() {
-            // The client id typed in the field counts even if "Save" was not tapped.
-            controller.openSpotifySignIn()?.let { problem -> fail(problem) }
-        }
-
-        fun signOutSpotify() {
-            controller.signOutSpotify()
-            refreshAccount()
-        }
-
         // The sign-in happens in its own activity, so the screen re-reads the state
         // whenever it comes back to the foreground.
         fun refreshAccount() {
-            _spotifyAccount.value = SpotifyAccountUi(controller.spotifyClientId(), controller.isSpotifySignedIn())
             _signedIn.value = controller.isSoundCloudSignedIn()
             if (!_signedIn.value) _libraryState.value = LibraryUiState()
         }
@@ -201,7 +153,7 @@ class PlayerViewModel
             }
         }
 
-        /** Searches SoundCloud for [query]; blank queries are ignored. The state keeps the results for the search tab. */
+        /** Searches the streaming service for [query]; blank queries are ignored. The state keeps the results for the search tab. */
         fun search(query: String) {
             val trimmed = query.trim()
             if (trimmed.isEmpty()) return
@@ -281,9 +233,8 @@ class PlayerViewModel
         }
 
         /**
-         * Imports whatever text was pasted or shared: finds the link in it, and for a
-         * SoundCloud link plays a single track right away or saves a playlist. Other
-         * services are recognized only to explain why they cannot be played here.
+         * Imports whatever text was pasted or shared. Without a streaming service in this build
+         * the link import only answers that it is not available.
          */
         fun importFromText(
             text: String,
@@ -293,16 +244,8 @@ class PlayerViewModel
                 _showPlayerRequest.value = true
                 _requestedTab.value = PlayerTab.PLAYLISTS
             }
-            _bridgeState.value = null
-
             linkImport.importText(text)
         }
-
-        /** Goes on with the saved, unfinished Spotify import. */
-        fun resumeSpotifyImport() = linkImport.resume()
-
-        /** Forgets the unfinished Spotify import (playlists already written stay). */
-        fun discardSpotifyImport() = linkImport.discard()
 
         /** Merges the chosen playlists (in the given order) into one new playlist; the originals stay. */
         fun mergePlaylists(
@@ -322,16 +265,8 @@ class PlayerViewModel
             }
         }
 
-        fun playBridgeMatch(match: BridgeMatch) {
-            controller.playQueue(listOf(match.track), 0)
-        }
-
-        fun dismissBridge() {
-            _bridgeState.value = null
-        }
-
-        // P5-7: audio files picked on the device play as the queue, through the same chain as SoundCloud
-        // (curve, virtual bass, mono bass, limiter) - nothing is looked up, the file is the stream.
+        // P5-7: audio files picked on the device play as the queue, through the same chain as every
+        // track (curve, virtual bass, mono bass, limiter) - nothing is looked up, the file is the stream.
         fun playLocalFiles(addresses: List<String>) {
             if (addresses.isEmpty()) return
             viewModelScope.launch {
@@ -412,8 +347,8 @@ class PlayerViewModel
         }
 
         /**
-         * Sends the playlists to the signed-in SoundCloud account as private playlists; ones sent
-         * before are updated in place (their SoundCloud id is kept). Empty playlists are skipped.
+         * Saves the playlists to the signed-in account as private playlists; ones sent before
+         * are updated in place (the service's playlist id is kept). Empty playlists are skipped.
          */
         fun syncToSoundCloud(playlists: List<SavedPlaylist>) {
             if (!controller.isSoundCloudSignedIn()) {

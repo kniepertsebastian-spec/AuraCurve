@@ -24,7 +24,7 @@ class AppAutoCatalog(
     private val discoveryRepository: DiscoveryRepository,
     // The signed-in account's likes; empty when signed out or when loading failed.
     private val likesLoader: suspend () -> List<TrackItem>,
-    // A plain SoundCloud search (voice commands for something that is in no playlist).
+    // A plain search on the streaming service (voice commands for something that is in no playlist).
     private val searchLoader: suspend (String) -> List<TrackItem>,
     private val texts: TextProvider,
 ) : AutoCatalog {
@@ -108,7 +108,7 @@ class AppAutoCatalog(
         return if (start < 0) null else AutoQueue(tracks, start)
     }
 
-    // Voice: a playlist whose name contains the words wins, then a SoundCloud search.
+    // Voice: a playlist whose name contains the words wins, then a search on the streaming service (none in this build).
     // Nothing said ("play music") plays the newest playlist, or else the likes.
     override suspend fun queueForSearch(query: String): AutoQueue? {
         val words = query.trim()

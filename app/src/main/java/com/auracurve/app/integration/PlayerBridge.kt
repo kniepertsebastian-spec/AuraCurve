@@ -3,9 +3,9 @@ package com.auracurve.app.integration
 import com.auracurve.app.preset.TargetPoint
 
 /**
- * Binds HardBass EQ's master on/off bar to the SC Equalizer Player screen (see
- * roadmap.md: SoundCloud never sends ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION, so
- * there's no session for us to attach to until something we control is playing).
+ * Binds the master on/off bar to the built-in player screen. Some music apps never send
+ * ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION, so there is no session to attach to until
+ * something the app controls is playing.
  * Switching the master bar on with no session attached and picking a source starts
  * the player screen for that source; switching it off stops playback.
  *
