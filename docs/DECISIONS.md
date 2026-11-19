@@ -1,33 +1,27 @@
 # Decisions
 
-## SoundCloud integration (status: waiting for SoundCloud's answer)
+## No streaming service in the store build
 
-**Date:** 16 Nov 2026
+**Date:** 19 Nov 2026 (replaces the entry of 16 Nov 2026 on a planned SoundCloud integration)
 
-AuraCurve ships without any streaming service. SoundCloud is the planned first one, and only
-through the official SoundCloud API, once SoundCloud has approved the use case in writing.
+The Google Play build (`com.auracurve.app`) ships without any streaming service: no SoundCloud,
+no Spotify, no link import, no online catalogs and no self-update. It is an equalizer and sound
+chain for the user's music apps plus a player for audio files on the device.
 
-**Use case asked for** (written request to SoundCloud):
+**Removed:** the seams that were kept for a later integration (`OnlineSources`, `LinkImport`,
+`DiscoverySource` and the weekly "new uploads" worker, the "Linked services" screen, search, the
+account library, sending playlists to an account, the Likes and new-uploads folders in Android
+Auto, the Spotify equalizer hint) and the `INTERNET` permission. Coil's network module, OkHttp and
+WorkManager are no longer dependencies.
 
-- Sign-in with the user's own SoundCloud account via OAuth 2.1 with PKCE in the system browser
-  (Custom Tab); no client secret in the app.
-- Search, the user's likes and playlists, opening SoundCloud links shared into the app.
-- Playback in the built-in player with real-time equalizer/DSP processing on the device. No
-  downloading, recording or caching beyond what playback needs.
-- Optional: saving playlists to the user's account (private), a weekly search for new uploads.
-- Background playback, media controls and Android Auto.
-- Attribution as SoundCloud specifies; content the user may not stream is shown as unavailable or
-  as a preview and never worked around.
+**Kept, generic:** the player's `StreamResolver` seam and network-retry handling in
+`AudioPlayerService`. In this build every track is a file on the device, so neither is reached;
+removing them is a separate, tested step.
 
-**Where it plugs in:** `OnlineSources` (account, search, library, links), `LinkImport` and the
-player's `StreamResolver`. This build provides the "not available" versions (`NoOnlineSources`,
-`NoLinkImport`, `StreamResolvers`); the screens hide what needs a service via
-`BuildConfig.ONLINE_SOURCES`.
+**Guard:** `scripts/check_store_apk.py` runs in CI and fails if the APK declares the `INTERNET`
+permission or contains SoundCloud/Spotify addresses, Spotify/YouTube link resolution, a
+self-update or online catalogs.
 
-**Guard:** `scripts/check_store_apk.py` runs in CI and fails if the APK contains SoundCloud access
-outside the official API, Spotify/YouTube link resolution, a self-update or uncleared catalogs.
-
-**Open until SoundCloud answers:** approved scope and conditions, Go+ handling, attribution
-requirements, OAuth client model, distribution. Record the answer here (date, sender, approved
-scope, conditions, where the original is archived) before any implementation starts. If SoundCloud
-declines, no replacement through unofficial endpoints is built.
+**If a streaming service is ever added:** only through the provider's official API and with its
+written approval, recorded here (date, sender, approved scope, conditions). The privacy policy and
+the Play Console data-safety answers must be updated before that version is released.

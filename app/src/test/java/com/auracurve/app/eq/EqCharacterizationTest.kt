@@ -237,7 +237,7 @@ class EqCharacterizationTest {
             val rig = Rig(engine = hiRes)
             val vm = rig.viewModel()
             rig.step("no session") { vm.selectPreset(BuiltInPresets.DeepRumble) }
-            rig.step("foreign session") { rig.sessions.setActiveSession(AudioSession(7, "com.spotify.music")) }
+            rig.step("foreign session") { rig.sessions.setActiveSession(AudioSession(7, "com.example.musicapp")) }
             rig.step("compare EQ") { vm.setCompareSide(CompareSide.EQ) }
             rig.step("compare ORIGINAL") { vm.setCompareSide(CompareSide.ORIGINAL) }
             rig.step("end compare") { vm.endCompare() }

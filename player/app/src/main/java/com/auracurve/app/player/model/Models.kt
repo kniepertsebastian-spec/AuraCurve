@@ -20,18 +20,3 @@ data class TrackItem(
     val genre: String = "",
     val tagList: String = ""
 )
-
-data class PlaylistItem(
-    val id: Long,
-    val title: String,
-    val trackCount: Int,
-    val artworkUrl: String?,
-    val tracks: List<TrackItem> = emptyList()
-)
-
-// The signed-in user's playlists: ones they created and ones they liked. `tracks` of
-// each PlaylistItem is empty here - the tracks are loaded when one is opened.
-data class LibraryOverview(
-    val own: List<PlaylistItem>,
-    val liked: List<PlaylistItem>,
-)

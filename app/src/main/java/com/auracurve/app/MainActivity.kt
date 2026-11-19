@@ -25,7 +25,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    // Activity-scoped, handed to AppNavHost explicitly: a link shared into the app
+    // Activity-scoped, handed to AppNavHost explicitly: a tap on the playback notification
     // (onNewIntent below) has to reach the same instance the player screen shows.
     private val playerViewModel: PlayerViewModel by viewModels()
 
@@ -39,9 +39,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestNotificationPermissionIfNeeded()
         // Only on a fresh start: after a rotation the same intent is delivered again
-        // and must not import the shared link a second time.
+        // and must not import the preset link a second time.
         if (savedInstanceState == null) {
-            handleShareIntent(intent)
+            handleIncomingIntent(intent)
             handleOpenPlayerIntent(intent)
         }
         setContent {
@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleShareIntent(intent)
+        handleIncomingIntent(intent)
         handleOpenPlayerIntent(intent)
     }
 
@@ -71,9 +71,8 @@ class MainActivity : ComponentActivity() {
         if (intent?.action == PlayerLaunch.ACTION_OPEN_PLAYER) playerViewModel.requestNowPlaying()
     }
 
-    // "Share" from another app with this one as the target: the shared text carries the link,
-    // which the player screen hands to the link import (not available in this build).
-    private fun handleShareIntent(intent: Intent?) {
+    // A quick-settings tile, the widget or a shared preset link.
+    private fun handleIncomingIntent(intent: Intent?) {
         // A tile or the widget asked for something while no screen of the app was alive.
         QuickCommandIntents.commandOf(intent)?.let { command ->
             mainViewModel.queueQuickCommand(command)
@@ -83,15 +82,11 @@ class MainActivity : ComponentActivity() {
         val link = intent?.takeIf { it.action == Intent.ACTION_VIEW }?.dataString
         if (link != null && PresetShareCodec.isShareLink(link)) {
             mainViewModel.importPresetLink(link)
-            return
         }
-        if (intent?.action != Intent.ACTION_SEND || intent.type != "text/plain") return
-        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return
-        playerViewModel.importFromText(text, fromShare = true)
     }
 
     // Without this, the AudioSessionForegroundService's notification (explaining why
-    // HardBass EQ keeps running) stays invisible on API 33+ - the service itself still
+    // AuraCurve keeps running) stays invisible on API 33+ - the service itself still
     // works, but the user has no way to know it's there.
     private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return

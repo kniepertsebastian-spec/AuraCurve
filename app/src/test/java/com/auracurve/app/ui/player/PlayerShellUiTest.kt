@@ -87,7 +87,6 @@ class PlayerShellUiTest {
             contextName = "Car",
             route = AudioRoute(AudioDeviceType.BLUETOOTH, "JBL Flip 6", "bt"),
             queueCount = 23,
-            signedIn = true,
         )
 
     private class Calls {

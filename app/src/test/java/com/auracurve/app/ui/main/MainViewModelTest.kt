@@ -1236,7 +1236,7 @@ class MainViewModelTest {
             dispatcher.scheduler.advanceUntilIdle()
             assertTrue(viewModel.isOwnPlayerSession.value)
 
-            sessions.setActiveSession(AudioSession(sessionId = 1, packageName = "com.spotify.music"))
+            sessions.setActiveSession(AudioSession(sessionId = 1, packageName = "com.example.musicapp"))
             dispatcher.scheduler.advanceUntilIdle()
             assertFalse(viewModel.isOwnPlayerSession.value)
 
@@ -1251,23 +1251,23 @@ class MainViewModelTest {
             val sessions = FakeAudioSessionRepository()
             val viewModel = createViewModel(emptyList(), sessionRepository = sessions)
             dispatcher.scheduler.advanceUntilIdle()
-            val spotify = AudioSession(sessionId = 1, packageName = "com.spotify.music")
-            val youtube = AudioSession(sessionId = 2, packageName = "com.google.android.youtube")
+            val musicApp = AudioSession(sessionId = 1, packageName = "com.example.musicapp")
+            val videoApp = AudioSession(sessionId = 2, packageName = "com.example.videoapp")
 
-            sessions.setActiveSession(spotify)
+            sessions.setActiveSession(musicApp)
             dispatcher.scheduler.advanceUntilIdle()
             viewModel.selectPreset(BuiltInPresets.DeepRumble)
             viewModel.setAppProfileBound(true)
             dispatcher.scheduler.advanceUntilIdle()
             assertTrue(viewModel.appProfileBound.value)
 
-            sessions.setActiveSession(youtube)
+            sessions.setActiveSession(videoApp)
             dispatcher.scheduler.advanceUntilIdle()
-            assertFalse("YouTube has no profile of its own", viewModel.appProfileBound.value)
+            assertFalse("The video app has no profile of its own", viewModel.appProfileBound.value)
             viewModel.selectPreset(BuiltInPresets.KickAttack)
             dispatcher.scheduler.advanceUntilIdle()
 
-            sessions.setActiveSession(spotify)
+            sessions.setActiveSession(musicApp)
             dispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(BuiltInPresets.DeepRumble.id, viewModel.activePreset.value.id)
@@ -1279,9 +1279,9 @@ class MainViewModelTest {
             val sessions = FakeAudioSessionRepository()
             val viewModel = createViewModel(emptyList(), sessionRepository = sessions)
             val other = AudioSession(sessionId = 2, packageName = "other.app")
-            val spotify = AudioSession(sessionId = 1, packageName = "com.spotify.music")
+            val musicApp = AudioSession(sessionId = 1, packageName = "com.example.musicapp")
             dispatcher.scheduler.advanceUntilIdle()
-            sessions.setActiveSession(spotify)
+            sessions.setActiveSession(musicApp)
             dispatcher.scheduler.advanceUntilIdle()
             viewModel.setAppProfileBound(true)
             dispatcher.scheduler.advanceUntilIdle()
@@ -1292,7 +1292,7 @@ class MainViewModelTest {
             dispatcher.scheduler.advanceUntilIdle()
             viewModel.selectPreset(BuiltInPresets.Flat)
             dispatcher.scheduler.advanceUntilIdle()
-            sessions.setActiveSession(spotify)
+            sessions.setActiveSession(musicApp)
             dispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(BuiltInPresets.RawPower.id, viewModel.activePreset.value.id)
@@ -1303,10 +1303,10 @@ class MainViewModelTest {
         runTest {
             val sessions = FakeAudioSessionRepository()
             val viewModel = createViewModel(emptyList(), sessionRepository = sessions)
-            val spotify = AudioSession(sessionId = 1, packageName = "com.spotify.music")
+            val musicApp = AudioSession(sessionId = 1, packageName = "com.example.musicapp")
             val other = AudioSession(sessionId = 2, packageName = "other.app")
             dispatcher.scheduler.advanceUntilIdle()
-            sessions.setActiveSession(spotify)
+            sessions.setActiveSession(musicApp)
             dispatcher.scheduler.advanceUntilIdle()
             viewModel.selectPreset(BuiltInPresets.DeepRumble)
             viewModel.setAppProfileBound(true)
@@ -1319,7 +1319,7 @@ class MainViewModelTest {
             dispatcher.scheduler.advanceUntilIdle()
             viewModel.selectPreset(BuiltInPresets.Flat)
             dispatcher.scheduler.advanceUntilIdle()
-            sessions.setActiveSession(spotify)
+            sessions.setActiveSession(musicApp)
             dispatcher.scheduler.advanceUntilIdle()
 
             assertEquals(BuiltInPresets.Flat.id, viewModel.activePreset.value.id)
@@ -1551,7 +1551,7 @@ class MainViewModelTest {
             // The band that contains 110 Hz in the pre-EQ layout (100..122 Hz).
             val band = PreEqLayout.CUTOFFS_HZ.indexOfFirst { it >= 110f }
 
-            sessions.setActiveSession(AudioSession(sessionId = 1, packageName = "com.spotify.music"))
+            sessions.setActiveSession(AudioSession(sessionId = 1, packageName = "com.example.musicapp"))
             dispatcher.scheduler.advanceUntilIdle()
             val preEqGains = viewModel.processingSettings.value.preEqGainsDb
             assertTrue(preEqGains.isEmpty())
@@ -1608,7 +1608,7 @@ class MainViewModelTest {
             val sessions = FakeAudioSessionRepository()
             val viewModel = createViewModel(emptyList(), sessionRepository = sessions)
             dispatcher.scheduler.advanceUntilIdle()
-            sessions.setActiveSession(AudioSession(sessionId = 1, packageName = "com.spotify.music"))
+            sessions.setActiveSession(AudioSession(sessionId = 1, packageName = "com.example.musicapp"))
             viewModel.selectPreset(BuiltInPresets.DeepRumble)
             dispatcher.scheduler.advanceUntilIdle()
 

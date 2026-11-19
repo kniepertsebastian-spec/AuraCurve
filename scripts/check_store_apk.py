@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Checks that the store APK contains no online access that is not cleared for this build.
 
-AuraCurve is published without a streaming service until the provider has approved the use case
-(SoundCloud only through its official API). This script fails if the DEX files or the binary
-manifest of an APK contain markers of access that must not ship: SoundCloud's non-public web API,
-web client ids, an embedded web sign-in, Spotify/YouTube link resolution, a self-update or online
-catalogs that are not cleared. Not hidden, but absent from the code.
+AuraCurve is published on Google Play without any streaming service and without network access:
+equalizer, sound chain and a player for files on the device. This script fails if the DEX files
+or the binary manifest of an APK contain markers of access that must not ship: the INTERNET
+permission, streaming-service web APIs, web client ids, an embedded web sign-in, Spotify/YouTube
+link resolution, a self-update or online catalogs. Not hidden, but absent from the code.
 
     check_store_apk.py app.apk    # fails if any marker is present
 """
@@ -15,7 +15,7 @@ import zipfile
 
 # Markers in the compiled code (class names and string constants).
 DEX_MARKERS = [
-    "api-v2.soundcloud.com",  # SoundCloud's non-public web API (only the official API is allowed)
+    "api-v2.soundcloud.com",  # SoundCloud's non-public web API
     "client_id=",  # a client id in a request URL
     "SoundCloudLoginActivity",  # sign-in in an embedded WebView instead of the system browser
     "SpotifyLoginActivity",
@@ -25,6 +25,9 @@ DEX_MARKERS = [
     "open.spotify.com",  # Spotify link parsing
     "SpotifyImportPlan",  # Spotify playlist import
     "SoundCloudLinkImport",  # link import outside the official API
+    "soundcloud.com",  # any SoundCloud address
+    "sndcdn.com",  # SoundCloud's image and stream host
+    "spotify.com",  # any Spotify address
     "api.audius.co",  # Audius catalog (not cleared)
     "radio-browser.info",  # Radio Browser directory (not cleared)
 ]
@@ -32,6 +35,7 @@ DEX_MARKERS = [
 # Markers in AndroidManifest.xml (binary XML stores its strings as UTF-8 or UTF-16).
 MANIFEST_MARKERS = [
     "android.permission.REQUEST_INSTALL_PACKAGES",
+    "android.permission.INTERNET",  # the store build has no online source at all
     "SoundCloudLoginActivity",
     "SpotifyLoginActivity",
     "spotify-callback",

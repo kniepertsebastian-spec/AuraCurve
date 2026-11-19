@@ -129,7 +129,7 @@ class DiagnosticsReportFormatterTest {
     fun generateReport_includesTimestampedRecentEvents() {
         val events =
             listOf(
-                DiagnosticsEvent(timestampMillis = 0L, message = "Session attached: id=42 package=com.spotify.music"),
+                DiagnosticsEvent(timestampMillis = 0L, message = "Session attached: id=42 package=com.example.musicapp"),
             )
 
         val report =
@@ -141,7 +141,7 @@ class DiagnosticsReportFormatterTest {
             )
 
         assertTrue(report.contains("Recent Session Events"))
-        assertTrue(report.contains("Session attached: id=42 package=com.spotify.music"))
+        assertTrue(report.contains("Session attached: id=42 package=com.example.musicapp"))
     }
 
     @Test

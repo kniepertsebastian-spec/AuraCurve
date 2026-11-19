@@ -26,13 +26,13 @@ class QueueMediaIdTest {
         assertNull(QueueMediaId.trackId("queue|"))
         assertNull(QueueMediaId.trackId("queue|abc"))
         // The car's ids must never read as queue entries (and the other way round).
-        assertNull(QueueMediaId.trackId(AutoMediaId.likedTrack(42L)))
+        assertNull(QueueMediaId.trackId(AutoMediaId.playlistTrack("p", 42L)))
         assertNull(AutoMediaId.parse(QueueMediaId.of(42L)))
     }
 
     @Test
     fun realAddresses_areNotPlaceholders() {
-        assertNull(QueueMediaId.trackIdFromStreamUri("https://cf-media.sndcdn.com/abc.128.mp3"))
+        assertNull(QueueMediaId.trackIdFromStreamUri("https://example.com/abc.128.mp3"))
         assertNull(QueueMediaId.trackIdFromStreamUri("hardbasseq-sc://track/"))
         assertNull(QueueMediaId.trackIdFromStreamUri("hardbasseq-sc://playlist/42"))
     }

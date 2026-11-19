@@ -10,11 +10,13 @@ data class SavedTrack(
     val artist: String,
     val artworkUrl: String? = null,
     val durationMs: Long = 0L,
+    // For a file on the device: its content address, which is what plays (a file has no id that
+    // could be looked up). Null for anything else. Defaulted: older data still decodes.
+    val address: String? = null,
 )
 
-// A playlist kept on the device. Only the track metadata is stored, never a stream URL:
-// streaming addresses are short-lived, so the player resolves a fresh one by track id when
-// a track actually plays.
+// A playlist kept on the device: the track metadata and, for files on the device, their
+// content address (see SavedTrack.address).
 @Serializable
 data class SavedPlaylist(
     val id: String,
@@ -22,9 +24,6 @@ data class SavedPlaylist(
     val sourceUrl: String? = null,
     val tracks: List<SavedTrack>,
     val createdAtMs: Long = 0L,
-    // Id of the copy in the user's streaming account once it was saved there, so sending again
-    // updates that playlist instead of making a second one. Defaulted: older data still decodes.
-    val soundCloudId: Long? = null,
 )
 
 object SavedPlaylistJson {

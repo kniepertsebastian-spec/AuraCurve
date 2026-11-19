@@ -21,7 +21,6 @@ import com.auracurve.app.player.model.TrackItem
 import com.auracurve.app.preset.TargetPoint
 import com.auracurve.app.ui.eq.EqStatusKind
 import com.auracurve.app.ui.equalizer.displayName
-import com.auracurve.app.ui.player.PlayerTab
 import com.auracurve.app.ui.player.PlayerViewModel
 import com.auracurve.app.ui.player.library.PlaylistDialog
 import com.auracurve.app.ui.player.mini.MiniPlayer
@@ -84,7 +83,6 @@ fun NowPlayingLayer(
     val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val queue by viewModel.queue.collectAsStateWithLifecycle()
     val playedIds by viewModel.playedIds.collectAsStateWithLifecycle()
-    val signedIn by viewModel.signedIn.collectAsStateWithLifecycle()
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val expandRequest by viewModel.expandPlayerRequest.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -136,7 +134,6 @@ fun NowPlayingLayer(
                         contextName = sound.activeContext?.displayName(),
                         route = sound.route,
                         queueCount = queue.size,
-                        signedIn = signedIn,
                     ),
                 actions =
                     NowPlayingActions(
@@ -174,7 +171,6 @@ fun NowPlayingLayer(
                     onAddToPlaylist = { playlistTrack = it },
                     onGoToSearch = {
                         sheet.queueOpen = false
-                        viewModel.requestTab(PlayerTab.SEARCH)
                         scope.launch { sheet.collapse() }
                         onGoToSearch()
                     },

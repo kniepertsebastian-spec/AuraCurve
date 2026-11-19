@@ -22,7 +22,7 @@ class LocalTrackIdTest {
     }
 
     @Test
-    fun soundCloudIdsAreNeverLocal() {
+    fun nonNegativeIdsAreNeverLocal() {
         assertFalse(LocalTrackId.isLocal(1_234_567_890L))
         assertFalse(LocalTrackId.isLocal(0L))
     }

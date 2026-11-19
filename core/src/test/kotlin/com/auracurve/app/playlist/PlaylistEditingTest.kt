@@ -46,7 +46,7 @@ class PlaylistEditingTest {
 
     @Test
     fun `an imported playlist is not local`() {
-        assertFalse(PlaylistEditing.isLocal(SavedPlaylist("u", "T", sourceUrl = "https://soundcloud.com/a/sets/b", tracks = emptyList())))
+        assertFalse(PlaylistEditing.isLocal(SavedPlaylist("u", "T", sourceUrl = "content://playlists/b", tracks = emptyList())))
     }
 
     @Test

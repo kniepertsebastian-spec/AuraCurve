@@ -22,7 +22,7 @@ class TrackMediaItemsTest {
     ) = TrackItem(id = id, title = "T", artist = "A", artworkUrl = null, streamUrl = streamUrl, durationMs = 1000, isHlsStream = isHls)
 
     @Test
-    fun soundCloudTrack_getsThePlaceholderAddressForLookup() {
+    fun onlineTrackId_getsThePlaceholderAddressForLookup() {
         val item = TrackMediaItems.toMediaItem(track(42, streamUrl = "https://cf-media.sndcdn.com/expiring.mp3"))
 
         assertEquals(QueueMediaId.streamUri(42), item.localConfiguration?.uri.toString())

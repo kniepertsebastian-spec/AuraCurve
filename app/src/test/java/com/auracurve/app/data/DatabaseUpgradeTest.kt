@@ -60,7 +60,7 @@ class DatabaseUpgradeTest {
                 .build()
         try {
             runBlocking {
-                assertEquals(null, db.appProfileDao().getProfile("com.spotify.music"))
+                assertEquals(null, db.appProfileDao().getProfile("com.example.musicapp"))
                 assertEquals(null, db.deviceProfileDao().getProfileForRoute("x"))
                 assertNotNull(db.presetDao())
             }

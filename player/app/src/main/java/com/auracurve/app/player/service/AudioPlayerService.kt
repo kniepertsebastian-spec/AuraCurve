@@ -170,7 +170,7 @@ class AudioPlayerService : MediaLibraryService() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Browsing and "play this" for the car load playlists and likes (network, database).
+    // Browsing and "play this" for the car load the playlists (database).
     private val libraryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // The tracks as the screens or the car handed them over, by id: richer than what a media
@@ -281,9 +281,9 @@ class AudioPlayerService : MediaLibraryService() {
             .setUseLazyPreparation(true)
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
-            // Keeps the CPU and the Wi-Fi connection awake while music plays: without it the
-            // phone dozes when the screen locks and the stream stutters or stops.
-            .setWakeMode(C.WAKE_MODE_NETWORK)
+            // Keeps the CPU awake while music plays: without it the phone dozes when the screen
+            // locks and playback stutters or stops. Files on the device need no Wi-Fi lock.
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             // "Previous" restarts the track after this long, like before.
             .setMaxSeekToPreviousPositionMs(QueueNavigation.RESTART_THRESHOLD_MS)
             .build()

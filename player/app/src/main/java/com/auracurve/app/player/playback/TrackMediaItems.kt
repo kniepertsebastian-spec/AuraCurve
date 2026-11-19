@@ -7,7 +7,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import com.auracurve.app.player.model.TrackItem
 import com.auracurve.app.playlist.DirectStream
-import com.auracurve.app.playlist.PlayerFormat
+import com.auracurve.app.playlist.LocalTrackId
 import com.auracurve.app.playlist.QueueMediaId
 
 // A track as an entry of ExoPlayer's playlist (the play queue), and back. The entry carries
@@ -33,7 +33,7 @@ object TrackMediaItems {
                     .Builder()
                     .setTitle(track.title)
                     .setArtist(track.artist)
-                    .setArtworkUri(PlayerFormat.largeArtwork(track.artworkUrl)?.let(Uri::parse))
+                    .setArtworkUri(track.artworkUrl?.let(Uri::parse))
                     .setDurationMs(track.durationMs.takeIf { it > 0 })
                     .setIsBrowsable(false)
                     .setIsPlayable(true)
@@ -55,7 +55,8 @@ object TrackMediaItems {
             title = metadata.title?.toString().orEmpty(),
             artist = metadata.artist?.toString().orEmpty(),
             artworkUrl = metadata.extras?.getString(EXTRA_ARTWORK_URL),
-            streamUrl = null,
+            // A file on the device keeps its address, so it can still be saved in a playlist.
+            streamUrl = item.localConfiguration?.uri?.toString()?.takeIf { LocalTrackId.isLocal(id) },
             durationMs = metadata.durationMs ?: 0L,
         )
     }

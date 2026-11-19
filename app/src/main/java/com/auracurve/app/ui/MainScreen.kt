@@ -66,7 +66,6 @@ fun MainScreen(
     onNavigateToDiagnostics: () -> Unit = {},
     // The built-in player has a track loaded (mini player and "Now playing" live in the app shell).
     playerLoaded: Boolean = false,
-    onOpenServices: () -> Unit = {},
 ) {
     val showDebugEffects by viewModel.showDebugEffects.collectAsStateWithLifecycle()
     val descriptors by viewModel.effectDescriptors.collectAsStateWithLifecycle()
@@ -282,7 +281,6 @@ fun MainScreen(
                 allCorrectionProfiles = allCorrectionProfiles,
                 suggestedCorrectionProfile = suggestedCorrectionProfile,
                 effectiveHeadphoneAcoustics = effectiveHeadphoneAcoustics,
-                onOpenServices = onOpenServices,
                 onRenameRoute = { viewModel.renameCurrentRoute(it) },
                 pathLabel =
                     activeAudioSession?.let { appLabelFor(context, it.packageName) }

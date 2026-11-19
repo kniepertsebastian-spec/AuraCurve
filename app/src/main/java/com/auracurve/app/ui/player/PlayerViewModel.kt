@@ -3,12 +3,9 @@ package com.auracurve.app.ui.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.auracurve.app.R
-import com.auracurve.app.integration.LoadResult
 import com.auracurve.app.integration.LocalTrackReader
 import com.auracurve.app.integration.NoLocalTrackReader
 import com.auracurve.app.integration.PlayerController
-import com.auracurve.app.player.model.LibraryOverview
-import com.auracurve.app.player.model.PlaylistItem
 import com.auracurve.app.player.model.TrackItem
 import com.auracurve.app.player.playback.NowPlaying
 import com.auracurve.app.player.playback.PlayedTracksState
@@ -30,28 +27,9 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// Feedback line under the link field: what the last import did (or why it could not).
+// Feedback line on the player screen: what the last action did (or why it could not).
 data class ImportUiState(
     val isLoading: Boolean = false,
-    val message: String? = null,
-    val isError: Boolean = false,
-)
-
-// The search tab: the last query, its results and what to say when there are none.
-enum class SearchOutcome { IDLE, RESULTS, NO_RESULTS, FAILED }
-
-data class SearchUiState(
-    val query: String = "",
-    val isLoading: Boolean = false,
-    val results: List<TrackItem> = emptyList(),
-    val outcome: SearchOutcome = SearchOutcome.IDLE,
-    val errorDetail: String? = null,
-)
-
-// The signed-in user's library as shown in the player screen.
-data class LibraryUiState(
-    val isLoading: Boolean = false,
-    val library: LibraryOverview? = null,
     val message: String? = null,
     val isError: Boolean = false,
 )
@@ -64,8 +42,6 @@ class PlayerViewModel
         private val playlistRepository: PlaylistRepository,
         private val texts: TextProvider,
         private val localTracks: LocalTrackReader = NoLocalTrackReader,
-        // Pasted and shared links; this build has no link import (NoLinkImport).
-        private val linkImport: LinkImport = NoLinkImport(),
     ) : ViewModel() {
         val nowPlaying: StateFlow<NowPlaying?> = controller.nowPlaying
         val queue: StateFlow<List<TrackItem>> = controller.queue
@@ -79,127 +55,13 @@ class PlayerViewModel
                 .map { list -> list.sortedByDescending { it.createdAtMs } }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-        private val _signedIn = MutableStateFlow(controller.isSoundCloudSignedIn())
-        val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
-
-        private val _libraryState = MutableStateFlow(LibraryUiState())
-        val libraryState: StateFlow<LibraryUiState> = _libraryState.asStateFlow()
-
-        private val _searchState = MutableStateFlow(SearchUiState())
-        val searchState: StateFlow<SearchUiState> = _searchState.asStateFlow()
-
         private val _importState = MutableStateFlow(ImportUiState())
         val importState: StateFlow<ImportUiState> = _importState.asStateFlow()
 
-        init {
-            linkImport.attach(LinkImportSession(viewModelScope, _importState))
-        }
-
-        // Set when a link was shared into the app from elsewhere or the playback notification
-        // was tapped, so the UI can bring the player screen forward; cleared by
-        // consumeShowPlayerRequest().
+        // Set when the playback notification was tapped, so the UI can bring the player screen
+        // forward; cleared by consumeShowPlayerRequest().
         private val _showPlayerRequest = MutableStateFlow(false)
         val showPlayerRequest: StateFlow<Boolean> = _showPlayerRequest.asStateFlow()
-
-        // The sign-in happens in its own activity, so the screen re-reads the state
-        // whenever it comes back to the foreground.
-        fun refreshAccount() {
-            _signedIn.value = controller.isSoundCloudSignedIn()
-            if (!_signedIn.value) _libraryState.value = LibraryUiState()
-        }
-
-        /** Loads (or reloads) the signed-in user's playlists; does nothing while signed out or already loading. */
-        fun loadLibrary() {
-            if (!controller.isSoundCloudSignedIn() || _libraryState.value.isLoading) return
-            viewModelScope.launch {
-                _libraryState.value = _libraryState.value.copy(isLoading = true, message = null, isError = false)
-                _libraryState.value =
-                    when (val result = controller.loadLibrary()) {
-                        is LoadResult.Ok -> LibraryUiState(library = result.value)
-                        is LoadResult.Error ->
-                            _libraryState.value.copy(isLoading = false, message = result.message, isError = true)
-                    }
-            }
-        }
-
-        fun playLikedTracks() = playLoaded(texts.get(R.string.library_likes_title)) { controller.loadLikedTracks() }
-
-        fun playLibraryPlaylist(playlist: PlaylistItem) = playLoaded(playlist.title) { controller.loadPlaylistTracks(playlist.id) }
-
-        // Loads tracks from the account and starts them as the queue; a long playlist
-        // takes a moment, so the state shows what is being loaded.
-        private fun playLoaded(
-            name: String,
-            load: suspend () -> LoadResult<List<TrackItem>>,
-        ) {
-            viewModelScope.launch {
-                val before = _libraryState.value
-                _libraryState.value =
-                    before.copy(isLoading = true, message = texts.get(R.string.import_loading_name, name), isError = false)
-                when (val result = load()) {
-                    is LoadResult.Ok -> {
-                        if (result.value.isEmpty()) {
-                            _libraryState.value =
-                                before.copy(isLoading = false, message = texts.get(R.string.import_name_empty, name), isError = true)
-                        } else {
-                            controller.playQueue(result.value, 0)
-                            _libraryState.value = before.copy(isLoading = false, message = null, isError = false)
-                        }
-                    }
-
-                    is LoadResult.Error ->
-                        _libraryState.value = before.copy(isLoading = false, message = result.message, isError = true)
-                }
-            }
-        }
-
-        /** Searches the streaming service for [query]; blank queries are ignored. The state keeps the results for the search tab. */
-        fun search(query: String) {
-            val trimmed = query.trim()
-            if (trimmed.isEmpty()) return
-            viewModelScope.launch {
-                _searchState.value = SearchUiState(query = trimmed, isLoading = true)
-                _searchState.value =
-                    when (val result = controller.searchSoundCloud(trimmed, SEARCH_RESULT_LIMIT)) {
-                        is LoadResult.Ok ->
-                            SearchUiState(
-                                query = trimmed,
-                                results = result.value,
-                                outcome = if (result.value.isEmpty()) SearchOutcome.NO_RESULTS else SearchOutcome.RESULTS,
-                            )
-
-                        is LoadResult.Error ->
-                            SearchUiState(query = trimmed, outcome = SearchOutcome.FAILED, errorDetail = result.message)
-                    }
-            }
-        }
-
-        /** Plays the search results as the queue, starting with the tapped one. */
-        fun playSearchResult(index: Int) {
-            val results = _searchState.value.results
-            if (index !in results.indices) return
-            controller.playQueue(results, index)
-        }
-
-        fun signIn() = controller.openSoundCloudSignIn()
-
-        fun signOut() {
-            controller.signOutSoundCloud()
-            refreshAccount()
-        }
-
-        // The tab the player screen should switch to (a shared link wants the playlists), once.
-        private val _requestedTab = MutableStateFlow<PlayerTab?>(null)
-        val requestedTab: StateFlow<PlayerTab?> = _requestedTab.asStateFlow()
-
-        fun consumeRequestedTab() {
-            _requestedTab.value = null
-        }
-
-        /** Switches the player page to [tab] (e.g. "Go to search" from the empty queue). */
-        fun requestTab(tab: PlayerTab) {
-            _requestedTab.value = tab
-        }
 
         // "Now playing" should open full screen (notification, lock screen), once.
         private val _expandPlayerRequest = MutableStateFlow(false)
@@ -230,21 +92,6 @@ class PlayerViewModel
 
         fun dismissImportMessage() {
             _importState.value = ImportUiState()
-        }
-
-        /**
-         * Imports whatever text was pasted or shared. Without a streaming service in this build
-         * the link import only answers that it is not available.
-         */
-        fun importFromText(
-            text: String,
-            fromShare: Boolean = false,
-        ) {
-            if (fromShare) {
-                _showPlayerRequest.value = true
-                _requestedTab.value = PlayerTab.PLAYLISTS
-            }
-            linkImport.importText(text)
         }
 
         /** Merges the chosen playlists (in the given order) into one new playlist; the originals stay. */
@@ -299,10 +146,6 @@ class PlayerViewModel
             title: String,
             firstTrack: TrackItem? = null,
         ) {
-            if (firstTrack != null && LocalTrackId.isLocal(firstTrack.id)) {
-                fail(texts.get(R.string.local_files_not_in_playlists))
-                return
-            }
             viewModelScope.launch {
                 val existing = playlistRepository.playlists.first()
                 val playlist = PlaylistEditing.create(title, existing, System.currentTimeMillis(), firstTrack?.toSaved())
@@ -319,10 +162,6 @@ class PlayerViewModel
             playlist: SavedPlaylist,
             track: TrackItem,
         ) {
-            if (LocalTrackId.isLocal(track.id)) {
-                fail(texts.get(R.string.local_files_not_in_playlists))
-                return
-            }
             viewModelScope.launch {
                 // Read again: the list shown may be a moment old.
                 val latest = playlistRepository.playlists.first().firstOrNull { it.id == playlist.id } ?: return@launch
@@ -343,37 +182,6 @@ class PlayerViewModel
             viewModelScope.launch {
                 val latest = playlistRepository.playlists.first().firstOrNull { it.id == playlist.id } ?: return@launch
                 playlistRepository.save(PlaylistEditing.removeTrack(latest, trackId))
-            }
-        }
-
-        /**
-         * Saves the playlists to the signed-in account as private playlists; ones sent before
-         * are updated in place (the service's playlist id is kept). Empty playlists are skipped.
-         */
-        fun syncToSoundCloud(playlists: List<SavedPlaylist>) {
-            if (!controller.isSoundCloudSignedIn()) {
-                fail(texts.get(R.string.soundcloud_sign_in_first))
-                return
-            }
-            val toSend = playlists.filter { it.tracks.isNotEmpty() }
-            if (toSend.isEmpty()) {
-                fail(texts.get(R.string.soundcloud_nothing_to_send))
-                return
-            }
-            viewModelScope.launch {
-                _importState.value = ImportUiState(isLoading = true)
-                var sent = 0
-                for (selected in toSend) {
-                    val latest = playlistRepository.playlists.first().firstOrNull { it.id == selected.id } ?: continue
-                    val result = controller.pushPlaylistToSoundCloud(latest.title, latest.tracks.map { it.id }, latest.soundCloudId)
-                    if (result is LoadResult.Error) {
-                        fail(texts.get(R.string.soundcloud_send_failed, latest.title, result.message))
-                        return@launch
-                    }
-                    playlistRepository.save(latest.copy(soundCloudId = (result as LoadResult.Ok).value))
-                    sent++
-                }
-                _importState.value = ImportUiState(message = texts.get(R.string.soundcloud_sent, sent))
             }
         }
 
@@ -453,13 +261,20 @@ class PlayerViewModel
             _importState.value = ImportUiState(message = message, isError = true)
         }
 
+        // A file on the device keeps its content address: that is what plays.
         private fun TrackItem.toSaved() =
-            SavedTrack(id = id, title = title, artist = artist, artworkUrl = artworkUrl, durationMs = durationMs)
+            SavedTrack(
+                id = id,
+                title = title,
+                artist = artist,
+                artworkUrl = artworkUrl,
+                durationMs = durationMs,
+                address = streamUrl?.takeIf { LocalTrackId.isLocal(id) },
+            )
 
-        // No stream URL on purpose - the player resolves a fresh one by id when the
-        // track plays.
+        // A file on the device plays from its address; anything else would need a lookup by id.
         private fun SavedTrack.toTrackItem() =
-            TrackItem(id = id, title = title, artist = artist, artworkUrl = artworkUrl, streamUrl = null, durationMs = durationMs)
+            TrackItem(id = id, title = title, artist = artist, artworkUrl = artworkUrl, streamUrl = address, durationMs = durationMs)
     }
 
 internal fun nextRepeat(current: RepeatSetting): RepeatSetting =
@@ -468,5 +283,3 @@ internal fun nextRepeat(current: RepeatSetting): RepeatSetting =
         RepeatSetting.ALL -> RepeatSetting.ONE
         RepeatSetting.ONE -> RepeatSetting.OFF
     }
-
-private const val SEARCH_RESULT_LIMIT = 30

@@ -5,7 +5,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+      The store build has no online source: equalizer, sound chain and files from the device only.
+      Removed here so no library can bring it back; scripts/check_store_apk.py checks the APK for it.
+    -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
 
     <!--
       Optional (roadmap 06, P5-2): only ever granted by the user over ADB
@@ -35,7 +41,7 @@
         android:theme="@style/Theme.AuraCurve">
 
         <!--
-          singleTask: a link shared into the app from another app must reach the
+          singleTask: a preset link, a tile or the playback notification must reach the
           already-running instance (onNewIntent) rather than start a second
           MainActivity with its own view models next to the first.
         -->
