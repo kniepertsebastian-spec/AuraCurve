@@ -30,10 +30,6 @@ android {
         versionName = providers.gradleProperty("hardbasseq.versionName").getOrElse("0.2.0-m1")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // This repository is the store build only: no online source is built in. The flag is kept
-        // so the shared player UI (PlayerScreen) and AuraCurveApplication compile unchanged.
-        buildConfigField("boolean", "ONLINE_SOURCES", "false")
     }
 
     // English-only app: also drops translations bundled with libraries.
@@ -125,9 +121,8 @@ ksp {
 dependencies {
     // Shared preset/DSP domain logic (plain Kotlin/JVM, no Android dependency).
     implementation(project(":core"))
-    // SC Equalizer Player: the companion source screen the master bar's source
-    // picker launches (see PlayerBridge). A library module now, merged into this
-    // single app's manifest/APK instead of its own separate app.
+    // The built-in player (Media3, files from the device), a library module merged into this
+    // app's manifest/APK.
     implementation(project(":player"))
 
     implementation(libs.core.ktx)
@@ -152,12 +147,10 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.datastore.preferences)
-    // Weekly background refresh of "Interesting new uploads".
-    implementation(libs.work.runtime.ktx)
     implementation(libs.car.app)
-    // Covers in the player's lists and the large cover, cached in memory and on disk.
+    // Covers in the player's lists and the large cover, cached in memory and on disk. No network
+    // module: the store build has no online source, so covers only ever come from the device.
     implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.zxing.core)
 

@@ -17,7 +17,7 @@ private const val TAG = "AudioPlaybackMonitor"
 
 /**
  * Monitors system-wide audio playback using AudioManager.AudioPlaybackCallback (API 26+).
- * This allows detecting when ANY app (Spotify, YouTube, etc.) starts or stops playing audio,
+ * This allows detecting when ANY app (any music or video app) starts or stops playing audio,
  * even when our service isn't running. Used to automatically restart the EQ service when
  * music starts playing.
  */

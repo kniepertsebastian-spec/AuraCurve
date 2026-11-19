@@ -16,7 +16,7 @@ import java.nio.ByteBuffer
 //
 // Virtual bass only exists here: the system-wide effect path HardBass EQ uses for other
 // apps (Android Equalizer/DynamicsProcessing attached to their audio session) has no hook
-// for custom sample processing, so Spotify & co. cannot get it - see docs/DECISIONS.md.
+// for custom sample processing, so other apps cannot get it - see docs/DECISIONS.md.
 @OptIn(UnstableApi::class)
 class PlayerDspAudioProcessor : BaseAudioProcessor() {
     private val dsp = PlayerDspPcm16()

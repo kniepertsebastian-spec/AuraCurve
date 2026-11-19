@@ -13,21 +13,21 @@ import org.robolectric.annotation.Config
 @Config(sdk = [35], application = Application::class)
 class ScannedSessionsTest {
     private val repository = AndroidAudioSessionRepository(ApplicationProvider.getApplicationContext())
-    private val spotify = AudioSession(sessionId = 11, packageName = "com.spotify.music")
+    private val musicApp = AudioSession(sessionId = 11, packageName = "com.example.musicapp")
     private val browser = AudioSession(sessionId = 22, packageName = "org.example.browser")
 
     @Test
     fun scannedSessions_joinTheListAndBecomeActiveWhenNothingIsActive() {
-        repository.updateScannedSessions(listOf(spotify))
+        repository.updateScannedSessions(listOf(musicApp))
 
-        assertEquals(listOf(spotify), repository.sessions.value)
-        assertEquals(spotify, repository.activeSession.value)
+        assertEquals(listOf(musicApp), repository.sessions.value)
+        assertEquals(musicApp, repository.activeSession.value)
     }
 
     @Test
     fun scannedSessions_leaveAgainWhenTheScanNoLongerFindsThem() {
-        repository.updateScannedSessions(listOf(spotify, browser))
-        repository.setActiveSession(spotify)
+        repository.updateScannedSessions(listOf(musicApp, browser))
+        repository.setActiveSession(musicApp)
 
         repository.updateScannedSessions(listOf(browser))
 
@@ -37,17 +37,17 @@ class ScannedSessionsTest {
 
     @Test
     fun anActiveSessionTheUserPickedStaysWhileItIsStillFound() {
-        repository.updateScannedSessions(listOf(spotify, browser))
-        repository.setActiveSession(spotify)
+        repository.updateScannedSessions(listOf(musicApp, browser))
+        repository.setActiveSession(musicApp)
 
-        repository.updateScannedSessions(listOf(spotify, browser))
+        repository.updateScannedSessions(listOf(musicApp, browser))
 
-        assertEquals(spotify, repository.activeSession.value)
+        assertEquals(musicApp, repository.activeSession.value)
     }
 
     @Test
     fun emptyScan_clearsEverythingTheScanAdded() {
-        repository.updateScannedSessions(listOf(spotify))
+        repository.updateScannedSessions(listOf(musicApp))
 
         repository.updateScannedSessions(emptyList())
 

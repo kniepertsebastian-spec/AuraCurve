@@ -5,7 +5,7 @@
 
 An Android equalizer built for powerful, controlled bass: an interactive frequency-response curve, sound profiles, device-specific presets and a built-in player for audio files on the device.
 
-This repository is the store build of AuraCurve (application ID `com.auracurve.app`, intended for Google Play). It contains no SoundCloud, Spotify or YouTube access and no self-update. A SoundCloud integration through the official API is planned once SoundCloud has approved it (see `docs/DECISIONS.md`).
+This repository is the store build of AuraCurve (application ID `com.auracurve.app`, intended for Google Play). It contains no streaming service, no network access and no self-update (see `docs/DECISIONS.md`).
 
 ## Features
 
@@ -43,7 +43,7 @@ Requirements: JDK 21, Android SDK (path in `local.properties`), Android Studio r
 ./gradlew ktlintCheck lintDebug
 ```
 
-Check that the APK contains no online-access code (CI runs this too):
+Check that the APK contains no online-access code and no internet permission (CI runs this too):
 
 ```bash
 python3 scripts/check_store_apk.py app/build/outputs/apk/debug/app-debug.apk
@@ -57,14 +57,14 @@ Release signing reads `hardbasseq.releaseStoreFile`, `hardbasseq.releaseStorePas
 |---|---|
 | `docs/ARCHITECTURE.md` | Audio engine and service architecture. |
 | `docs/adr/` | Architecture decision records (Kotlin/KSP/Hilt build setup). |
-| `docs/DECISIONS.md` | Decisions, including the status of the planned SoundCloud integration. |
+| `docs/DECISIONS.md` | Decisions, including why the store build has no streaming service. |
 | `docs/STORE_LISTING.md` | Draft of the Play Store listing. |
 | `docs/PRIVACY_POLICY_DRAFT.md` | Draft privacy policy (not legally reviewed). |
 | `docs/licenses/Barlow-OFL.txt` | License of the bundled Barlow font. |
 
 ## Privacy
 
-Audio is processed on the device. The app has no server of its own and contains no analytics, advertising or crash-reporting library.
+Audio is processed on the device. The app has no internet permission, no server of its own and contains no analytics, advertising or crash-reporting library.
 
 ## License
 

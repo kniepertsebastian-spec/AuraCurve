@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -43,60 +42,15 @@ import com.auracurve.app.ui.player.textAlpha
 import com.auracurve.app.ui.player.trackPlayState
 import com.auracurve.app.ui.theme.SonicPaper
 import com.auracurve.app.ui.theme.SonicSteel
-import com.auracurve.app.ui.theme.spacing
-
-// One tappable entry of the account library: tap anywhere (or the play button) to
-// load its tracks and play them as the queue.
-@Composable
-internal fun LibraryRow(
-    title: String,
-    subtitle: String,
-    onPlay: () -> Unit,
-    showCover: Boolean = false,
-    artworkUrl: String? = null,
-    menu: (@Composable () -> Unit)? = null,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .clickable(onClick = onPlay)
-                .padding(vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (showCover) {
-            CoverThumb(url = artworkUrl)
-            Spacer(modifier = Modifier.size(MaterialTheme.spacing.small))
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = SonicPaper,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = SonicSteel)
-        }
-        IconButton(onClick = onPlay) {
-            Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.player_play))
-        }
-        menu?.invoke()
-    }
-}
 
 // A saved playlist: tap the name to show its tracks. Tracks of playlists made on the
-// device can be removed there; imported ones are refreshed by importing the link again.
+// device can be removed there.
 @Composable
 internal fun PlaylistRow(
     playlist: SavedPlaylist,
     onPlay: () -> Unit,
     onPlayTrack: (Int) -> Unit,
     onDelete: () -> Unit,
-    // Null hides the action (no streaming account to save to in this build).
-    onSendToSoundCloud: (() -> Unit)?,
     onRemoveTrack: (Long) -> Unit,
     onPlayNext: (SavedTrack) -> Unit,
     onAddToQueue: (SavedTrack) -> Unit,
@@ -123,17 +77,10 @@ internal fun PlaylistRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text =
-                        stringResource(R.string.playlist_row_count, playlist.tracks.size) +
-                            if (playlist.soundCloudId != null) stringResource(R.string.playlist_row_on_soundcloud) else "",
+                    text = stringResource(R.string.playlist_row_count, playlist.tracks.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = SonicSteel,
                 )
-            }
-            if (onSendToSoundCloud != null) {
-                IconButton(onClick = onSendToSoundCloud, enabled = playlist.tracks.isNotEmpty()) {
-                    Icon(Icons.Default.CloudUpload, contentDescription = stringResource(R.string.playlist_to_soundcloud))
-                }
             }
             IconButton(onClick = onPlay, enabled = playlist.tracks.isNotEmpty()) {
                 Icon(Icons.Default.PlayArrow, contentDescription = stringResource(R.string.playlist_play))

@@ -74,7 +74,7 @@ class DatabaseMigrationTest {
 
         migrated.execSQL(
             "INSERT INTO app_profiles (packageName, boundPresetId, boundCorrectionProfileId, updatedAtMillis) " +
-                "VALUES ('com.spotify.music', 'builtin_deep_rumble', 'correction_none', 1)",
+                "VALUES ('com.example.musicapp', 'builtin_deep_rumble', 'correction_none', 1)",
         )
         migrated.query("SELECT COUNT(*) FROM app_profiles").use { cursor ->
             cursor.moveToFirst()

@@ -10,11 +10,12 @@ class SavedPlaylistTest {
         SavedPlaylist(
             id = "p1",
             title = "Uptempo Mix",
-            sourceUrl = "https://soundcloud.com/a/sets/mix",
+            sourceUrl = "content://playlists/mix",
             tracks =
                 listOf(
                     SavedTrack(1L, "Kick", "DJ A", "https://img/1.jpg", 180_000L),
                     SavedTrack(2L, "Snare", "DJ B"),
+                    SavedTrack(-3L, "Local file", "DJ C", address = "content://media/external/audio/media/3"),
                 ),
             createdAtMs = 42L,
         )
@@ -48,5 +49,6 @@ class SavedPlaylistTest {
                 .single()
         assertNull(track.artworkUrl)
         assertEquals(0L, track.durationMs)
+        assertNull(track.address)
     }
 }

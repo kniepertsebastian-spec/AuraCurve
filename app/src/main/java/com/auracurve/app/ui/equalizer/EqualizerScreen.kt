@@ -93,7 +93,6 @@ fun EqualizerScreen(
     allCorrectionProfiles: List<CorrectionProfile>,
     suggestedCorrectionProfile: AutoEqCatalogEntry?,
     effectiveHeadphoneAcoustics: Boolean,
-    onOpenServices: () -> Unit,
     onRenameRoute: (String) -> Unit = {},
     activeGoal: SoundGoal,
     onGoalSelected: (SoundGoal) -> Unit,
@@ -743,10 +742,7 @@ fun EqualizerScreen(
                 color = style.text,
             )
             var showRenameRoute by rememberSaveable { mutableStateOf(false) }
-            Row {
-                TextButton(onClick = onOpenServices) { Text(stringResource(R.string.profiles_open_services)) }
-                TextButton(onClick = { showRenameRoute = true }) { Text(stringResource(R.string.route_rename)) }
-            }
+            TextButton(onClick = { showRenameRoute = true }) { Text(stringResource(R.string.route_rename)) }
             if (showRenameRoute) {
                 RenameRouteDialog(
                     currentName = route.name,

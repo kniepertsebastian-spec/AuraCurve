@@ -25,8 +25,7 @@ com.auracurve.app/
   data/         # Room database, entities, DAOs, migrations
   di/           # Hilt modules
   diagnostics/  # In-memory diagnostics recorder and report
-  discovery/    # Discovery seam (no source in this build, see DistributionModule)
-  integration/  # Bridge to the built-in player, local track reader, online-source seam
+  integration/  # Bridge to the built-in player, local track reader
   playlist/     # Saved playlists
   preset/       # Preset repository
   profile/      # Device and app profiles
@@ -52,9 +51,8 @@ com.auracurve.app/
 
 Hilt: `@HiltAndroidApp` on `AuraCurveApplication`, `@AndroidEntryPoint` on `MainActivity`,
 `@HiltViewModel` view models. Modules in `di/`: `AudioModule`, `DatabaseModule`,
-`DiagnosticsModule`, `DispatcherModule`, `IntegrationModule`, `PersistenceModule` and
-`DistributionModule`, which binds the "no online source" implementations of `OnlineSources`,
-`DiscoverySource` and `LinkImport`.
+`DiagnosticsModule`, `DispatcherModule`, `IntegrationModule` and `PersistenceModule`. The store
+build has no online source and no network access.
 
 KSP (needed by Hilt and Room) does not work with AGP 9's built-in Kotlin. The workaround
 (`android.builtInKotlin=false`, `android.newDsl=false`, the `org.jetbrains.kotlin.android` plugin
@@ -62,7 +60,7 @@ applied again) is described in `docs/adr/0001-kotlin-ksp-with-agp9.md`.
 
 ## Navigation
 
-`AppNavHost` with the routes home (equalizer), player, linked services and diagnostics.
+`AppNavHost` with the routes home (equalizer), player and diagnostics.
 
 ## Threading rules
 

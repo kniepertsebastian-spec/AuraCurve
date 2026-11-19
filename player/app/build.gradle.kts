@@ -58,8 +58,7 @@ dependencies {
     // MediaLibraryService: notification, lock screen, Bluetooth, Wear and Android Auto from one session.
     implementation(libs.media3.session)
 
-    // Networking / Async / JSON
-    implementation(libs.okhttp)
+    // Async
     implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)

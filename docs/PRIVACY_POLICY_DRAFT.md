@@ -1,6 +1,6 @@
 # Privacy policy · draft
 
-**Status:** 15 Nov 2026. **Draft, not legally reviewed.** Applies to `com.auracurve.app`. Checked against the code of this repository (permissions taken from the built APK, `scripts/check_store_apk.py`).
+**Status:** 19 Nov 2026. **Draft, not legally reviewed.** Applies to `com.auracurve.app`. Checked against the code of this repository (permissions taken from the built APK, `scripts/check_store_apk.py`).
 
 **Before publishing:** fill in every `[placeholder]`; host the text publicly (for example GitHub Pages of a public repository or an own domain) and link it in the Play Console. Ideally have it reviewed by someone with data-protection experience.
 
@@ -22,7 +22,7 @@ The policy text is given in English and, for German users, in German. The German
 
 **3. Audio.** Sound is processed on your device only. AuraCurve records nothing, stores no audio and uploads nothing. The app does not use the microphone.
 
-**4. Permissions.** Notifications (playback and equalizer service); foreground service for media playback and wake lock (playback and equalizer with the screen off); run at startup (scheduled system tasks via Android WorkManager); internet and network state (declared by bundled Android libraries; the store version itself does not connect to any server); "extended app detection" (DUMP), optional and only grantable from a computer via ADB, to see on the device which app is playing audio. The app sees which apps on your device can be launched, to match an audio session to its app; this list is neither stored nor transmitted.
+**4. Permissions.** Notifications (playback and equalizer service); foreground service for media playback and wake lock (playback and equalizer with the screen off); network state (the player checks whether a connection exists before it retries a track; AuraCurve has no internet access and cannot send anything); "extended app detection" (DUMP), optional and only grantable from a computer via ADB, to see on the device which app is playing audio. The app sees which apps on your device can be launched, to match an audio session to its app; this list is neither stored nor transmitted.
 
 **5. Android Auto.** With Android Auto your car shows your playlists and the current track. Data is only exchanged between your phone and your car, not with us.
 
@@ -67,8 +67,7 @@ Der Klang wird ausschließlich auf deinem Gerät verarbeitet. AuraCurve nimmt ni
 |---|---|
 | Benachrichtigungen | Anzeige der laufenden Wiedergabe und des Equalizer-Dienstes |
 | Vordergrunddienst (Medienwiedergabe), Wake-Lock | Wiedergabe und Equalizer bei ausgeschaltetem Bildschirm |
-| Start nach dem Hochfahren | Geplante Hintergrundaufgaben des Systems (Android WorkManager) |
-| Internet, Netzwerkstatus | Von eingebundenen Android-Bibliotheken deklariert; die Store-Version stellt selbst keine Verbindung zu einem Server her |
+| Netzwerkstatus | Der Player prüft vor einem erneuten Versuch, ob eine Verbindung besteht; AuraCurve hat keinen Internetzugriff und kann nichts senden |
 | „Erweiterte App-Erkennung“ (DUMP) | Optional, nur über einen Computer per ADB erteilbar; liest, welche App gerade Audio abspielt, auf dem Gerät |
 
 Die App sieht, welche Apps auf deinem Gerät installiert sind und gestartet werden können, um eine Audio-Sitzung der richtigen App zuzuordnen. Diese Liste wird nicht gespeichert und nicht übertragen.
@@ -105,6 +104,6 @@ Die App richtet sich nicht gezielt an Kinder unter 13 Jahren und erhebt keine Da
 
 ## Open points and recommendation
 
-- **Internet permission:** the app contains no network code of its own but still declares `INTERNET` and `ACCESS_NETWORK_STATE` (manifests of `:app` and `:player`). Recommendation: remove them with `tools:node="remove"` and check on a device that playback, covers and Android Auto still work. Section 4 could then say: "AuraCurve has no internet access." Not done yet.
+- **Internet permission:** removed (19 Nov 2026); `scripts/check_store_apk.py` fails the build if it comes back. Check on a device that playback, covers and Android Auto still work, and compare section 4 with the permissions of the release APK before publishing.
 - Check whether device names (section 2) count as personal data and whether the data-safety answers match.
 - Decide on the hosting address.

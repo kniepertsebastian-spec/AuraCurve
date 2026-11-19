@@ -70,7 +70,6 @@ import com.auracurve.app.R
 import com.auracurve.app.audio.AudioDeviceType
 import com.auracurve.app.audio.AudioRoute
 import com.auracurve.app.player.playback.PlayerNotice
-import com.auracurve.app.playlist.PlayerFormat
 import com.auracurve.app.preset.TargetPoint
 import com.auracurve.app.ui.eq.EqStatusKind
 import com.auracurve.app.ui.eq.EqStatusLamp
@@ -81,7 +80,6 @@ import com.auracurve.app.ui.player.PlayKey
 import com.auracurve.app.ui.player.PlayerSoundChip
 import com.auracurve.app.ui.player.RepeatButton
 import com.auracurve.app.ui.player.ShuffleButton
-import com.auracurve.app.ui.player.common.PreviewTag
 import com.auracurve.app.ui.player.isProblem
 import com.auracurve.app.ui.player.noticeText
 import com.auracurve.app.ui.theme.spacing
@@ -94,7 +92,6 @@ data class NowPlayingContext(
     val contextName: String?,
     val route: AudioRoute,
     val queueCount: Int,
-    val signedIn: Boolean,
 )
 
 class NowPlayingActions(
@@ -218,7 +215,7 @@ private fun Cover(
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         ArtworkFrame(modifier = Modifier.size(size)) {
             CoverImage(
-                url = PlayerFormat.largeArtwork(url),
+                url = url,
                 modifier =
                     Modifier
                         .fillMaxSize()
@@ -254,21 +251,6 @@ private fun Controls(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        if (ui.isPreview) {
-            Spacer(modifier = Modifier.height(spacing.extraSmall))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                PreviewTag()
-                Spacer(modifier = Modifier.width(spacing.small))
-                Text(
-                    text =
-                        stringResource(
-                            if (context.signedIn) R.string.preview_hint_account else R.string.preview_hint_sign_in,
-                        ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = style.mutedText,
-                )
-            }
-        }
         ui.notice?.let { notice -> NoticeRow(notice, showRetry = ui.showRetry, onRetry = actions.onTogglePlayback) }
         Spacer(modifier = Modifier.height(spacing.small))
         SeekBar(

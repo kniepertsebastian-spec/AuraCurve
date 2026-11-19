@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- AudioPlayerService asks whether a connection exists before it retries a failed track. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <!-- ExoPlayer setWakeMode: keep CPU and Wi-Fi awake while music streams with the screen off. -->
+    <!-- ExoPlayer setWakeMode: keep the CPU awake while music plays with the screen off. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application>

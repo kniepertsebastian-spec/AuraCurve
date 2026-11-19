@@ -15,25 +15,9 @@ object PlayerFormat {
         }
     }
 
-    // Some services serve artwork as ...-large.jpg (100x100), which looks blurry on the
-    // full player; the same image exists at other sizes under a different suffix.
-    // Anything that does not follow that pattern is returned unchanged.
-    fun largeArtwork(url: String?): String? = url?.replace("-large.", "-t500x500.")
-
     // 0f..1f progress through a track, 0f while the duration is unknown.
     fun progress(
         positionMs: Long,
         durationMs: Long,
     ): Float = if (durationMs <= 0L) 0f else (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-}
-
-// How many whole days ago an upload was (0 = today, never negative). The words ("today", "yesterday",
-// "3 days ago") belong to the screen, which has the translations.
-object AgeFormat {
-    private const val MS_PER_DAY = 86_400_000L
-
-    fun daysSince(
-        nowMs: Long,
-        thenMs: Long,
-    ): Long = ((nowMs - thenMs) / MS_PER_DAY).coerceAtLeast(0)
 }

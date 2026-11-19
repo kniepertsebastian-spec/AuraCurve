@@ -4,7 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /**
- * Roadmap 06, P5-5: the sound to use while one particular app (Spotify, YouTube, ...) is the one the
+ * Roadmap 06, P5-5: the sound to use while one particular app (a music or video app) is the one the
  * EQ is attached to - in addition to the per-device [DeviceProfileEntity]. Only apps the user asked
  * for have a row, so an app without one simply keeps whatever is active.
  */

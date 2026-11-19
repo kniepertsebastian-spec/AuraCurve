@@ -54,7 +54,7 @@ internal val CompactGraphHeight = 132.dp
 internal val COMPACT_HEIGHT = 640.dp
 internal val WIDE_LAYOUT_MIN_WIDTH = 600.dp
 
-// Same look as the player's tabs (PlayerTabs): amber marker, selected label light, the others steel.
+// Tab look: amber marker, selected label light, the others steel.
 @Composable
 internal fun EqualizerTabs(
     selected: EqualizerTab,

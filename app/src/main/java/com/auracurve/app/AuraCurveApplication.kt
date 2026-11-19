@@ -6,11 +6,6 @@ import android.content.Intent
 import android.service.quicksettings.TileService
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.work.Constraints
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import coil3.ImageLoader
 import coil3.PlatformContext
 import coil3.SingletonImageLoader
@@ -18,7 +13,6 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
 import com.auracurve.app.auto.AppAutoCatalog
-import com.auracurve.app.discovery.DiscoveryWorker
 import com.auracurve.app.player.PlayerText
 import com.auracurve.app.player.playback.AutoCatalogHolder
 import com.auracurve.app.quick.EqToggleTileService
@@ -29,7 +23,6 @@ import com.auracurve.app.service.AppVisibility
 import com.auracurve.app.service.AudioSessionForegroundService
 import dagger.hilt.android.HiltAndroidApp
 import okio.Path.Companion.toOkioPath
-import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 @HiltAndroidApp
@@ -65,12 +58,10 @@ class AuraCurveApplication :
         // MainViewModel is created), so the session-open broadcast a player sends
         // is much less likely to be missed. See AudioSessionForegroundService.
         startSessionService()
-        // New uploads need a streaming service, which this build does not have.
-        if (BuildConfig.ONLINE_SOURCES) scheduleDiscoveryRefresh()
     }
 
-    // Covers in the player (lists and the large one) may come from a server: kept in
-    // memory while scrolling and on disk across app starts, so they are not downloaded again.
+    // Covers in the player (lists and the large one), read from the audio files on the device:
+    // kept in memory while scrolling and on disk across app starts, so they are not read again.
     override fun newImageLoader(context: PlatformContext): ImageLoader =
         ImageLoader
             .Builder(context)
@@ -84,8 +75,7 @@ class AuraCurveApplication :
             }.crossfade(true)
             .build()
 
-    // A process that was created in the background (the discovery worker below, Android Auto binding
-    // the media browser) may not start a foreground service on Android 12+: that throws an
+    // A process that was created in the background (e.g. Android Auto binding the media browser) may not start a foreground service on Android 12+: that throws an
     // IllegalStateException (ForegroundServiceStartNotAllowedException). Unguarded in onCreate it
     // would crash the process at start. MainActivity calls this again when the app comes to the
     // foreground, so the service still starts on the next visit.
@@ -97,23 +87,8 @@ class AuraCurveApplication :
         }
     }
 
-    // "Interesting new uploads" rebuilds itself when a new week starts: this check runs
-    // every few hours (only with a connection) and does nothing until Monday has
-    // passed. KEEP leaves an already scheduled job alone across app starts.
-    private fun scheduleDiscoveryRefresh() {
-        val request =
-            PeriodicWorkRequestBuilder<DiscoveryWorker>(DISCOVERY_CHECK_HOURS, TimeUnit.HOURS)
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build()
-        WorkManager
-            .getInstance(this)
-            .enqueueUniquePeriodicWork(DISCOVERY_WORK_NAME, ExistingPeriodicWorkPolicy.KEEP, request)
-    }
-
     private companion object {
         const val TAG = "AuraCurveApplication"
-        const val DISCOVERY_WORK_NAME = "discovery_weekly_refresh"
-        const val DISCOVERY_CHECK_HOURS = 6L
         const val COVER_CACHE_DIR = "covers"
         const val COVER_DISK_CACHE_BYTES = 64L * 1024 * 1024
         const val COVER_MEMORY_SHARE = 0.15

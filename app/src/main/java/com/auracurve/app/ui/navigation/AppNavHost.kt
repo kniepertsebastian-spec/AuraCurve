@@ -37,8 +37,6 @@ import com.auracurve.app.ui.diagnostics.DiagnosticsScreen
 import com.auracurve.app.ui.eq.EqStatus
 import com.auracurve.app.ui.main.MainViewModel
 import com.auracurve.app.ui.main.SystemDiagnosticsSnapshot
-import com.auracurve.app.ui.player.DiscoveryViewModel
-import com.auracurve.app.ui.player.LinkedServicesScreen
 import com.auracurve.app.ui.player.PlayerScreen
 import com.auracurve.app.ui.player.PlayerViewModel
 import com.auracurve.app.ui.player.shell.NowPlayingLayer
@@ -49,7 +47,6 @@ import com.auracurve.app.ui.player.shell.rememberPlayerSheetState
 const val ROUTE_HOME = "home"
 const val ROUTE_DIAGNOSTICS = "diagnostics"
 const val ROUTE_PLAYER = "player"
-const val ROUTE_SERVICES = "services"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -72,7 +69,7 @@ fun AppNavHost(playerViewModel: PlayerViewModel) {
             restoreState = true
         }
     }
-    // A link shared into the app from elsewhere brings the player screen forward.
+    // A tap on the playback notification brings the player screen forward.
     val showPlayerRequest by playerViewModel.showPlayerRequest.collectAsStateWithLifecycle()
     LaunchedEffect(showPlayerRequest) {
         if (showPlayerRequest) {
@@ -145,28 +142,17 @@ fun AppNavHost(playerViewModel: PlayerViewModel) {
                         viewModel = viewModel,
                         onNavigateToDiagnostics = { navController.navigate(ROUTE_DIAGNOSTICS) },
                         playerLoaded = nowPlaying != null,
-                        onOpenServices = { navController.navigate(ROUTE_SERVICES) { launchSingleTop = true } },
                     )
                 }
                 composable(ROUTE_PLAYER) {
-                    val discoveryViewModel: DiscoveryViewModel = hiltViewModel()
                     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                         PlayerScreen(
                             viewModel = playerViewModel,
-                            discovery = discoveryViewModel,
                             eqState = engineState,
                             processingSettings = processingSettings,
                             onOpenEqualizer = { navigateTo(ROUTE_HOME) },
-                            onOpenServices = { navController.navigate(ROUTE_SERVICES) { launchSingleTop = true } },
                         )
                     }
-                }
-                composable(ROUTE_SERVICES) {
-                    LinkedServicesScreen(
-                        viewModel = playerViewModel,
-                        onBack = { navController.popBackStack() },
-                        onOpenSoundProfiles = { navigateTo(ROUTE_HOME) },
-                    )
                 }
                 composable(ROUTE_DIAGNOSTICS) {
                     val state by viewModel.engineState.collectAsStateWithLifecycle()

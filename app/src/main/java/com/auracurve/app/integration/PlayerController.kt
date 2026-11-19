@@ -16,38 +16,10 @@ import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
-sealed interface LinkImportResult {
-    data class Track(
-        val track: TrackItem,
-    ) : LinkImportResult
-
-    data class Playlist(
-        val title: String,
-        val sourceUrl: String,
-        val tracks: List<TrackItem>,
-    ) : LinkImportResult
-
-    data class Failed(
-        val message: String,
-    ) : LinkImportResult
-}
-
-// Result of loading something from the user's streaming account: the value, or a
-// message that can be shown as is.
-sealed interface LoadResult<out T> {
-    data class Ok<T>(
-        val value: T,
-    ) : LoadResult<T>
-
-    data class Error(
-        val message: String,
-    ) : LoadResult<Nothing>
-}
-
-// What the full player screen needs from the built-in player: its state, a queue
-// to step through, and (through OnlineSources) link resolution and the online services. Separate from PlayerBridge (the master
-// bar's launch/stop/toggle contract) so that one stays small.
-interface PlayerController : OnlineSources {
+// What the full player screen needs from the built-in player: its state and a queue to step
+// through. Separate from PlayerBridge (the master bar's launch/stop/toggle contract) so that one
+// stays small.
+interface PlayerController {
     val nowPlaying: StateFlow<NowPlaying?>
     val queue: StateFlow<List<TrackItem>>
 
@@ -92,9 +64,7 @@ class AndroidPlayerController
     @Inject
     constructor(
         @param:ApplicationContext private val context: Context,
-        online: OnlineSources,
-    ) : PlayerController,
-        OnlineSources by online {
+    ) : PlayerController {
         override val nowPlaying: StateFlow<NowPlaying?> = NowPlayingState.current
         override val queue: StateFlow<List<TrackItem>> = PlaybackQueueState.queue
 
