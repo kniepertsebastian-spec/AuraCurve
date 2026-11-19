@@ -99,14 +99,7 @@ fun PlayerScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(spacing.medium),
         ) {
-            item {
-                Text(
-                    text = stringResource(R.string.nav_player),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
+            item { LibraryHeader() }
 
             item {
                 EqStatusLine(
@@ -128,4 +121,16 @@ fun PlayerScreen(
             )
         }
     }
+}
+
+// The tab's title row.
+@Composable
+fun LibraryHeader() {
+    Text(
+        text = stringResource(R.string.nav_player),
+        style = MaterialTheme.typography.headlineSmall,
+        fontWeight = FontWeight.Bold,
+        color = SonicPaper,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }

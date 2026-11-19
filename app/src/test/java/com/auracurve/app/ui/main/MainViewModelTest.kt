@@ -37,9 +37,11 @@ import com.auracurve.app.integration.PlayerBridge
 import com.auracurve.app.integration.PlayerSource
 import com.auracurve.app.preset.BuiltInContextPresets
 import com.auracurve.app.preset.BuiltInGenrePresets
+import com.auracurve.app.preset.BuiltInGenreVariants
 import com.auracurve.app.preset.BuiltInPresets
 import com.auracurve.app.preset.Preset
 import com.auracurve.app.preset.PresetIntensity
+import com.auracurve.app.preset.PresetIntensityBoost
 import com.auracurve.app.preset.PresetIntensityResolver
 import com.auracurve.app.preset.PresetRepository
 import com.auracurve.app.preset.SoundGoal
@@ -900,7 +902,7 @@ class MainViewModelTest {
     // --- Chat feature: genre x intensity preset redesign ---
 
     @Test
-    fun `selecting a genre and intensity resolves and applies the combined preset`() =
+    fun `an old aggressive step becomes the genre base with more intensity on`() =
         runTest {
             val viewModel = createViewModel(emptyList())
             dispatcher.scheduler.advanceUntilIdle()
@@ -908,17 +910,21 @@ class MainViewModelTest {
             viewModel.selectGenreIntensity(BuiltInGenrePresets.Uptempo, PresetIntensity.AGGRESSIVE)
             dispatcher.scheduler.advanceUntilIdle()
 
-            val expected = PresetIntensityResolver.resolve(BuiltInGenrePresets.Uptempo, PresetIntensity.AGGRESSIVE)
-            assertEquals(expected.id, viewModel.activePreset.value.id)
-            assertEquals(expected.macroBassDb, viewModel.processingSettings.value.macroBassDb)
-            assertEquals(expected.macroPunchDb, viewModel.processingSettings.value.macroPunchDb)
+            val base = PresetIntensityResolver.resolve(BuiltInGenrePresets.Uptempo, PresetIntensity.MODERATE)
+            val played = PresetIntensityBoost.apply(base)
+            assertEquals(base.id, viewModel.activePreset.value.id)
+            assertTrue(viewModel.moreIntensity.value)
+            assertEquals(played.macroBassDb, viewModel.processingSettings.value.macroBassDb)
+            assertEquals(played.macroPunchDb, viewModel.processingSettings.value.macroPunchDb)
             assertFalse(viewModel.isDirty.value)
         }
 
     @Test
-    fun `selectedGenreIntensity reflects the currently active genre and intensity`() =
+    fun `an old soft step becomes the genre base with more intensity off`() =
         runTest {
             val viewModel = createViewModel(emptyList())
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.setMoreIntensity(true)
             dispatcher.scheduler.advanceUntilIdle()
 
             viewModel.selectGenreIntensity(BuiltInGenrePresets.Gabber, PresetIntensity.SUPER_SOFT)
@@ -926,7 +932,58 @@ class MainViewModelTest {
 
             val (genre, intensity) = requireNotNull(viewModel.selectedGenreIntensity.value)
             assertEquals(BuiltInGenrePresets.Gabber.id, genre.id)
-            assertEquals(PresetIntensity.SUPER_SOFT, intensity)
+            assertEquals(PresetIntensity.MODERATE, intensity)
+            assertFalse(viewModel.moreIntensity.value)
+        }
+
+    @Test
+    fun `more intensity adds the step to any preset and survives a preset change`() =
+        runTest {
+            val viewModel = createViewModel(emptyList())
+            dispatcher.scheduler.advanceUntilIdle()
+            val car = BuiltInGenreVariants.useCases(BuiltInGenrePresets.Rap).first().preset
+            viewModel.selectPreset(car)
+            dispatcher.scheduler.advanceUntilIdle()
+            val bassOff = viewModel.processingSettings.value.macroBassDb
+
+            viewModel.setMoreIntensity(true)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(bassOff + PresetIntensityBoost.macroBassDeltaDb, viewModel.processingSettings.value.macroBassDb, 0.001f)
+            assertFalse(viewModel.isDirty.value)
+
+            viewModel.selectPreset(BuiltInPresets.KickAttack)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.moreIntensity.value)
+            assertEquals(
+                BuiltInPresets.KickAttack.macroPunchDb + PresetIntensityBoost.macroPunchDeltaDb,
+                viewModel.processingSettings.value.macroPunchDb,
+                0.001f,
+            )
+        }
+
+    @Test
+    fun `more intensity keeps manual edits and leaves flat alone`() =
+        runTest {
+            val viewModel = createViewModel(emptyList())
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.selectPreset(BuiltInPresets.KickAttack)
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.setMacroBass(4f)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.setMoreIntensity(true)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertTrue(viewModel.isDirty.value)
+            assertEquals(4f + PresetIntensityBoost.macroBassDeltaDb, viewModel.processingSettings.value.macroBassDb, 0.001f)
+
+            viewModel.setMoreIntensity(false)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(4f, viewModel.processingSettings.value.macroBassDb, 0.001f)
+
+            viewModel.setMoreIntensity(true)
+            viewModel.selectPreset(BuiltInPresets.Flat)
+            dispatcher.scheduler.advanceUntilIdle()
+            assertEquals(0f, viewModel.processingSettings.value.macroBassDb)
         }
 
     @Test
@@ -1382,6 +1439,38 @@ class MainViewModelTest {
             // The speaker curve alone boosts about 2.5 dB at 100 Hz; at a ratio of 0.1 that
             // would cost 0.25 dB, at 0.5 it costs more than 1 dB.
             assertTrue(viewModel.processingSettings.value.inputGainDb <= -1f)
+        }
+
+    @Test
+    fun `soundbar mode gets the speaker input gain protection`() =
+        runTest {
+            val viewModel = createViewModel(emptyList())
+            dispatcher.scheduler.advanceUntilIdle()
+            viewModel.setContextMode(SoundContext.SOUNDBAR)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.setBandGain(bandIndex = 0, gainDb = 8f)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            // Same ratio as the Bluetooth speaker (0.8), not the default 0.5 (-4 dB).
+            assertEquals(-6.4f, viewModel.processingSettings.value.inputGainDb, 0.01f)
+        }
+
+    @Test
+    fun `answering soundbar stores SOUNDBAR and turns the mode on`() =
+        runTest {
+            val deviceProfileRepository = FakeDeviceProfileRepository()
+            val viewModel = createViewModel(emptyList(), deviceProfileRepository = deviceProfileRepository)
+            dispatcher.scheduler.advanceUntilIdle()
+            fakeRouteRepo.setRoute(unknownBt)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.answerDeviceKind(DeviceKind.SOUNDBAR)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals("SOUNDBAR", deviceProfileRepository.getProfileForRoute("bt_generic")?.contextMode)
+            assertEquals(SoundContext.SOUNDBAR, viewModel.activeContext.value)
+            assertNull(viewModel.deviceKindPrompt.value)
         }
 
     @Test
