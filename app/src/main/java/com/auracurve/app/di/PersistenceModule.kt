@@ -7,10 +7,12 @@ import com.auracurve.app.playlist.PlaylistRepository
 import com.auracurve.app.preset.PresetRepository
 import com.auracurve.app.preset.RoomPresetRepository
 import com.auracurve.app.profile.AppProfileRepository
+import com.auracurve.app.profile.CorrectionSuggestionDismissals
 import com.auracurve.app.profile.DeviceAliasStore
 import com.auracurve.app.profile.DeviceProfileRepository
 import com.auracurve.app.profile.RoomAppProfileRepository
 import com.auracurve.app.profile.RoomDeviceProfileRepository
+import com.auracurve.app.profile.SharedPreferencesCorrectionSuggestionDismissals
 import com.auracurve.app.profile.SharedPreferencesDeviceAliasStore
 import com.auracurve.app.settings.AppSettingsRepository
 import com.auracurve.app.settings.DataStoreAppSettingsRepository
@@ -46,6 +48,10 @@ abstract class PersistenceModule {
     @Binds
     @Singleton
     abstract fun bindDeviceAliasStore(impl: SharedPreferencesDeviceAliasStore): DeviceAliasStore
+
+    @Binds
+    @Singleton
+    abstract fun bindCorrectionSuggestionDismissals(impl: SharedPreferencesCorrectionSuggestionDismissals): CorrectionSuggestionDismissals
 
     @Binds
     @Singleton

@@ -167,12 +167,31 @@ fun EqualizerScreen(
     preEqResponseMode: com.auracurve.app.dsp.PreEqResponseMode = com.auracurve.app.dsp.PreEqResponseMode.BALANCED,
     onPreEqResponseModeChanged: ((com.auracurve.app.dsp.PreEqResponseMode) -> Unit)? = null,
     onSelectAudioSession: (AudioSession) -> Unit = {},
+    // The bundled AutoEq catalogue: searching it by name and picking a model. Null hides the search.
+    onSearchHeadphones: (suspend (String) -> List<AutoEqCatalogEntry>)? = null,
+    onHeadphoneChosen: (AutoEqCatalogEntry) -> Unit = {},
     // Rarely used extras (diagnostics, debug) at the end of the Device tab, out of the way.
     deviceTabFooter: (@Composable ColumnScope.() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val spacing = MaterialTheme.spacing
     val style = SonicStyle
+    // Opened from "My headphones" or from a suggestion ("Other model"); holds the starting query.
+    var headphoneSearchQuery by rememberSaveable { mutableStateOf<String?>(null) }
+    if (onSearchHeadphones != null) {
+        headphoneSearchQuery?.let { initial ->
+            HeadphoneCatalogDialog(
+                initialQuery = initial,
+                onSearch = onSearchHeadphones,
+                onChosen = {
+                    headphoneSearchQuery = null
+                    onHeadphoneChosen(it)
+                },
+                onDismiss = { headphoneSearchQuery = null },
+                style = style,
+            )
+        }
+    }
     // M3/M4: headroom from the combined correction+voicing curve, not just the
     // highest of the discrete post-mapping band gains - see HeadroomCalculator.
     // Mirrors MainViewModel.recalculateBandGains()'s own combination (including
@@ -463,6 +482,11 @@ fun EqualizerScreen(
                         color = style.mutedText,
                     )
                     Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                        if (onSearchHeadphones != null) {
+                            TextButton(onClick = { headphoneSearchQuery = route.name }) {
+                                Text(stringResource(R.string.action_other_model))
+                            }
+                        }
                         TextButton(onClick = onDismissSuggestedCorrectionProfile) {
                             Text(stringResource(R.string.action_not_now))
                         }
@@ -837,6 +861,11 @@ fun EqualizerScreen(
             SectionHeader(
                 title = stringResource(R.string.correction_title),
                 trailing = {
+                    if (onSearchHeadphones != null) {
+                        TextButton(onClick = { headphoneSearchQuery = "" }) {
+                            Text(stringResource(R.string.action_find_model))
+                        }
+                    }
                     // M5: opens the SAF file picker; parsing and preview happen in
                     // MainViewModel once MainScreen has read the picked file.
                     TextButton(onClick = onImportCorrectionProfileRequested) {

@@ -21,6 +21,7 @@ import com.auracurve.app.autoeq.AutoEqCatalogEntry
 import com.auracurve.app.autoeq.AutoEqCatalogMatcher
 import com.auracurve.app.autoeq.AutoEqParser
 import com.auracurve.app.context.SoundContext
+import com.auracurve.app.correction.BuiltInCorrectionProfiles
 import com.auracurve.app.correction.CorrectionProfile
 import com.auracurve.app.correction.CorrectionProfileRepository
 import com.auracurve.app.data.correction.CorrectionProfileJsonSerializer
@@ -43,8 +44,10 @@ import com.auracurve.app.preset.PresetIntensity
 import com.auracurve.app.preset.PresetRepository
 import com.auracurve.app.preset.SoundGoal
 import com.auracurve.app.profile.AppProfileRepository
+import com.auracurve.app.profile.CorrectionSuggestionDismissals
 import com.auracurve.app.profile.DeviceAliasStore
 import com.auracurve.app.profile.DeviceProfileRepository
+import com.auracurve.app.profile.InMemoryCorrectionSuggestionDismissals
 import com.auracurve.app.profile.InMemoryDeviceAliasStore
 import com.auracurve.app.profile.NoAppProfileRepository
 import com.auracurve.app.quick.QuickCommand
@@ -120,6 +123,7 @@ class MainViewModel
         private val deviceProfileRepository: DeviceProfileRepository,
         private val texts: TextProvider,
         private val deviceAliases: DeviceAliasStore,
+        private val suggestionDismissals: CorrectionSuggestionDismissals,
         private val sessionRepository: AudioSessionRepository,
         private val carConnectionRepository: CarConnectionRepository,
         private val systemDiagnostics: SystemDiagnosticsSource,
@@ -143,6 +147,7 @@ class MainViewModel
             deviceProfileRepository: DeviceProfileRepository,
             texts: TextProvider,
             deviceAliases: DeviceAliasStore = InMemoryDeviceAliasStore(),
+            suggestionDismissals: CorrectionSuggestionDismissals = InMemoryCorrectionSuggestionDismissals(),
             sessionRepository: AudioSessionRepository = NoAudioSessionRepository,
             carConnectionRepository: CarConnectionRepository = NoCarConnectionRepository,
             systemDiagnostics: SystemDiagnosticsSource = NoSystemDiagnosticsSource,
@@ -175,6 +180,7 @@ class MainViewModel
             deviceProfileRepository = deviceProfileRepository,
             texts = texts,
             deviceAliases = deviceAliases,
+            suggestionDismissals = suggestionDismissals,
             sessionRepository = sessionRepository,
             carConnectionRepository = carConnectionRepository,
             systemDiagnostics = systemDiagnostics,
@@ -262,19 +268,14 @@ class MainViewModel
         private val _pendingDeletePreset = MutableStateFlow<Preset?>(null)
         val pendingDeletePreset: StateFlow<Preset?> = _pendingDeletePreset.asStateFlow()
 
-        // "My headphones" auto-detection (chat feature, not a roadmap-2026.md
-        // milestone): a suggestion only, never a silent auto-import - see
-        // AutoEqCatalogMatcher's own doc comment for why. Cleared whenever the
-        // route already has an explicit DeviceProfileRepository binding (the user
-        // already chose something for it, suggested or not) or was dismissed for
-        // this route already - dismissedSuggestionRouteIds is intentionally only
-        // in-memory (this ViewModel's lifetime), not persisted: a fresh app start
-        // asking again after a dismissal is an acceptable tradeoff against the
-        // complexity of persisting a third kind of per-route state.
+        // "My headphones" auto-detection: when a Bluetooth/USB output connects that has no
+        // correction yet, the best match from the bundled AutoEq catalogue (about 6,000 models) is
+        // offered once. A suggestion only, never a silent auto-import - see AutoEqCatalogMatcher.
+        // Once accepted, the profile is bound to the route like any other choice, and
+        // EqController.applyDeviceProfileForRoute() loads it on every later connection. "Not now"
+        // is remembered per route across app starts (CorrectionSuggestionDismissals).
         private val _suggestedCorrectionProfile = MutableStateFlow<AutoEqCatalogEntry?>(null)
         val suggestedCorrectionProfile: StateFlow<AutoEqCatalogEntry?> = _suggestedCorrectionProfile.asStateFlow()
-
-        private val dismissedSuggestionRouteIds = mutableSetOf<String>()
 
         // M5 "show an import preview" / "extreme boosts are not applied silently
         // but limited or confirmed": set by
@@ -337,39 +338,63 @@ class MainViewModel
             intensity: PresetIntensity,
         ) = controller.selectGenreIntensity(genre, intensity)
 
-        fun selectCorrectionProfile(profile: CorrectionProfile) = controller.selectCorrectionProfile(profile)
+        fun selectCorrectionProfile(profile: CorrectionProfile) {
+            // Choosing any correction answers a pending suggestion as well.
+            if (profile.id != BuiltInCorrectionProfiles.None.id) _suggestedCorrectionProfile.value = null
+            controller.selectCorrectionProfile(profile)
+        }
 
         // Only WIRED_HEADPHONES/SPEAKER routes always carry a fixed, generic name
         // (see AndroidAudioRouteRepository.detectCurrentRoute()) - matching those
         // against the catalog would be meaningless, so only BLUETOOTH/USB routes
         // (which carry the actual device.productName) are ever considered.
+        // A route counts as "already has a correction" only when its binding names one: a route
+        // that merely remembers a genre preset (bound with BuiltInCorrectionProfiles.None) is still
+        // offered its headphone correction. The catalogue is read and matched off the main thread.
         private suspend fun updateSuggestedCorrectionProfile(route: AudioRoute) {
             val eligibleType = route.type == AudioDeviceType.BLUETOOTH || route.type == AudioDeviceType.USB
-            val alreadyBound = eligibleType && deviceProfileRepository.getProfileForRoute(route.id) != null
-            _suggestedCorrectionProfile.value =
-                if (!eligibleType || route.id in dismissedSuggestionRouteIds || alreadyBound) {
-                    null
-                } else {
-                    AutoEqCatalogMatcher.findBestMatch(route.name)
+            if (!eligibleType || suggestionDismissals.isDismissed(route.id)) {
+                _suggestedCorrectionProfile.value = null
+                return
+            }
+            val boundCorrection = deviceProfileRepository.getProfileForRoute(route.id)?.boundCorrectionProfileId
+            if (boundCorrection != null && boundCorrection != BuiltInCorrectionProfiles.None.id) {
+                _suggestedCorrectionProfile.value = null
+                return
+            }
+            val match =
+                withContext(backgroundDispatcher) {
+                    // A suggestion is a nicety: a catalogue that fails to load must not take the screen down.
+                    runCatching { AutoEqCatalogMatcher.findBestMatch(route.name) }.getOrNull()
                 }
+            // The output may have changed while matching.
+            _suggestedCorrectionProfile.value = match.takeIf { currentRoute.value.id == route.id }
         }
 
-        // Saves the suggested catalog profile the same way an AutoEQ file import
-        // gets saved - it needs to exist in CorrectionProfileRepository, not just be
-        // selected in memory, or the device-profile binding written next would point
-        // at an id that can never be resolved again later.
         fun acceptSuggestedCorrectionProfile() {
             val entry = _suggestedCorrectionProfile.value ?: return
+            applyCatalogHeadphone(entry)
+        }
+
+        fun dismissSuggestedCorrectionProfile() {
+            suggestionDismissals.dismiss(currentRoute.value.id)
+            _suggestedCorrectionProfile.value = null
+        }
+
+        /** Searches the bundled AutoEq catalogue by model name (see AutoEqCatalogMatcher.search). */
+        suspend fun searchHeadphones(query: String): List<AutoEqCatalogEntry> =
+            withContext(backgroundDispatcher) { AutoEqCatalogMatcher.search(query) }
+
+        // Saves the catalogue profile the same way an AutoEQ file import gets saved - it needs to
+        // exist in CorrectionProfileRepository, not just be selected in memory, or the route
+        // binding written by selectCorrectionProfile() would name an id that can never be resolved
+        // again. Selecting it binds it to the current output, so it loads on every reconnect.
+        fun applyCatalogHeadphone(entry: AutoEqCatalogEntry) {
             _suggestedCorrectionProfile.value = null
             val profile = entry.profile.copy(deviceName = entry.displayName)
             controller.saveCorrectionProfile(profile)
             selectCorrectionProfile(profile)
             feedback(R.string.feedback_profile_applied, profile.name)
-        }
-
-        fun dismissSuggestedCorrectionProfile() {
-            dismissedSuggestionRouteIds.add(currentRoute.value.id)
-            _suggestedCorrectionProfile.value = null
         }
 
         // M5: parses `text` (a file the caller already read, e.g. via a SAF

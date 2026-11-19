@@ -30,7 +30,7 @@ THE CURVE
 - Interactive frequency-response curve with draggable points
 - Free parametric bands with their own frequency, width (Q) and gain
 - Presets and your own curves, shareable as a link or QR code
-- AutoEQ correction profiles for headphones
+- AutoEq correction profiles for about 6,000 headphones, offline, loaded automatically per device
 
 BASS, CONTROLLED
 - Bass enhancement (virtual bass) that adds weight without simply turning up the lows
@@ -77,7 +77,7 @@ DIE KURVE
 - Interaktiver Frequenzgang mit verschiebbaren Punkten
 - Freie parametrische Bänder mit eigener Frequenz, Breite (Q) und Verstärkung
 - Presets und eigene Kurven, teilbar als Link oder QR-Code
-- AutoEQ-Korrekturprofile für Kopfhörer
+- AutoEq-Korrekturprofile für rund 6.000 Kopfhörer, offline und automatisch pro Gerät
 
 BASS UNTER KONTROLLE
 - Bassverstärkung (Virtual Bass), die Fülle gibt, ohne nur die Tiefen hochzudrehen

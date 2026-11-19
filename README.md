@@ -9,7 +9,7 @@ This repository is the store build of AuraCurve (application ID `com.auracurve.a
 
 ## Features
 
-- **Equalizer:** interactive frequency-response curve with draggable points, presets, sound goals, AutoEQ corrections for supported headphones.
+- **Equalizer:** interactive frequency-response curve with draggable points, presets, sound goals, AutoEq corrections for about 6,000 headphones, bundled offline: suggested when a headphone connects, then loaded automatically for that device.
 - **Processing for music apps:** attaches Android audio effects (`Equalizer`, `DynamicsProcessing`) to audio sessions that compatible apps report. Whether this works depends on the app, the Android version and the device manufacturer.
 - **Context profiles:** detects the connected output (car, speaker, headphones) and selects a matching profile.
 - **Built-in player:** Media3/ExoPlayer for files on the device, with its own real-time processing chain (curve EQ, subsonic filter, virtual bass, limiter), background playback, media controls and Android Auto.
@@ -61,6 +61,7 @@ Release signing reads `hardbasseq.releaseStoreFile`, `hardbasseq.releaseStorePas
 | `docs/STORE_LISTING.md` | Draft of the Play Store listing. |
 | `docs/PRIVACY_POLICY_DRAFT.md` | Draft privacy policy (not legally reviewed). |
 | `docs/licenses/Barlow-OFL.txt` | License of the bundled Barlow font. |
+| `docs/licenses/AutoEq-MIT.txt` | License of the bundled AutoEq headphone correction data (also shipped in the app next to the data). |
 
 ## Privacy
 

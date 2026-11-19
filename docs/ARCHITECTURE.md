@@ -8,7 +8,7 @@ structure and the rules that hold across it.
 | Module | Kind | Contents |
 |---|---|---|
 | `:app` | Android application | UI (Jetpack Compose), audio engine, services, persistence, DI. |
-| `:core` | Plain Kotlin/JVM | Presets, curve math, DSP (biquads, limiter, bass exciter, crossfeed, ...), AutoEQ parsing, JSON serialization. No Android dependency, so it is tested with plain JUnit. |
+| `:core` | Plain Kotlin/JVM | Presets, curve math, DSP (biquads, limiter, bass exciter, crossfeed, ...), AutoEQ parsing and the bundled AutoEq headphone catalogue (`core/src/main/resources/autoeq`, built by `scripts/build_autoeq_catalog.py`), JSON serialization. No Android dependency, so it is tested with plain JUnit. |
 | `:player` | Android library | Built-in player based on Media3/ExoPlayer: `AudioPlayerService` (a `MediaLibraryService` for notification, lock screen, Bluetooth and Android Auto) and `PlayerDspAudioProcessor`, the player's own real-time processing chain. |
 
 All packages live under `com.auracurve.app` (the player under `com.auracurve.app.player`).
