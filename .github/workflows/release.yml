@@ -1,0 +1,66 @@
+name: Signed Android release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # A tag can point at any commit, including one that never went through the CI on main. Do not
+      # sign and publish code whose tests fail.
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest :core:test --stacktrace
+
+      # The store build: an AAB for the Play Console upload and an APK for sideloading or a device
+      # test. Both are signed with the persistent release key (the Play upload key). versionCode
+      # must only grow for Play, so it comes from the run number, as in the Equalizer repository.
+      - name: Build signed AAB and APK
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.HARDBASS_RELEASE_KEYSTORE_BASE64 }}
+          RELEASE_PASSWORD: ${{ secrets.HARDBASS_RELEASE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]] || { echo "Unsupported release tag"; exit 1; }
+          [[ -n "$RELEASE_KEYSTORE_BASE64" && -n "$RELEASE_PASSWORD" ]] || { echo "Release signing secrets are missing"; exit 1; }
+          printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/hardbasseq-release.jks"
+          VERSION_CODE=$((1000 + GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+          VERSION_NAME="${TAG#v}"
+          ./gradlew :app:bundleRelease :app:assembleRelease --stacktrace \
+            -Phardbasseq.versionCode="$VERSION_CODE" \
+            -Phardbasseq.versionName="$VERSION_NAME" \
+            -Phardbasseq.releaseStoreFile="$RUNNER_TEMP/hardbasseq-release.jks" \
+            -Phardbasseq.releaseStorePassword="$RELEASE_PASSWORD" \
+            -Phardbasseq.releaseKeyAlias=hardbasseq \
+            -Phardbasseq.releaseKeyPassword="$RELEASE_PASSWORD"
+          rm -f "$RUNNER_TEMP/hardbasseq-release.jks"
+          cp app/build/outputs/bundle/release/app-release.aab "AuraCurve-${TAG}.aab"
+          cp app/build/outputs/apk/release/app-release.apk "AuraCurve-${TAG}.apk"
+
+      # The same guard as in the CI, on the APK that is actually published.
+      - name: Check that the release APK has no online-access code
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: python3 -I scripts/check_store_apk.py "AuraCurve-${TAG}.apk"
+
+      - name: Attach signed AAB and APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" "AuraCurve-${TAG}.aab" "AuraCurve-${TAG}.apk" --clobber
