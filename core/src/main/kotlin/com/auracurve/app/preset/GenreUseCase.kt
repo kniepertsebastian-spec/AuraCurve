@@ -46,7 +46,7 @@ enum class GenreUseCase(
         "Best at high volume, like a party or open windows. At high level the ear already hears " +
             "more bass and treble, so the bass macros and the harsh 3–5 kHz range are pulled back, " +
             "compressor and limiter work tighter and a subsonic filter keeps woofers from moving on " +
-            "rumble nobody hears.",
+            "rumble nobody hears. Loud in the car: pick this one and switch the Car listening mode on.",
     ),
     QUIET(
         "quiet",
@@ -114,7 +114,7 @@ object GenreUseCaseTuning {
                     subsonicCutoffHz = 65f,
                     virtualBassMix = 0.6f,
                 )
-            // Close to the eardrum extra Härte only tires; looser compression keeps the transients.
+            // Close to the eardrum extra hardness only tires; looser compression keeps the transients.
             GenreUseCase.HEADPHONES ->
                 tuned.copy(
                     macroHaerteDb = minOf(base.macroHaerteDb, 0f),
