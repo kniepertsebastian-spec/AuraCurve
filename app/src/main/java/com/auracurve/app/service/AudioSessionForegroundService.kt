@@ -23,7 +23,6 @@ import com.auracurve.app.audio.AudioSessionRepository
 import com.auracurve.app.audio.SystemVolumeRepository
 import com.auracurve.app.diagnostics.DiagnosticsRecorder
 import com.auracurve.app.eq.EqController
-import com.auracurve.app.remote.RemoteServerControl
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -73,13 +72,9 @@ class AudioSessionForegroundService : LifecycleService() {
     lateinit var sessionScanner: com.auracurve.app.audio.SessionScanner
 
     // E-008 stage 2: the equalizer's control logic, process-wide. Created here at the latest, so
-    // quick tiles, Android Auto and the remote server can steer the EQ without the app on screen.
+    // quick tiles and Android Auto can steer the EQ without the app on screen.
     @Inject
     lateinit var eqController: EqController
-
-    // Pixel-Car module 04: while the remote-control server ("full" only) runs, never idle out.
-    @Inject
-    lateinit var remoteServer: RemoteServerControl
 
     private var foregroundStarted = false
 
@@ -148,7 +143,7 @@ class AudioSessionForegroundService : LifecycleService() {
                 ) { session, state, isPlaying ->
                     (session != null && state !is AudioEngineState.Error) || isPlaying
                 }
-            idleShutdown(hasUsableSession, appVisibility.visible, SESSION_IDLE_TIMEOUT, remoteServer.running).first()
+            idleShutdown(hasUsableSession, appVisibility.visible, SESSION_IDLE_TIMEOUT).first()
             diagnosticsRecorder.record(
                 "No audio session for ${SESSION_IDLE_TIMEOUT.inWholeMinutes} min and the app is closed: stopping the service",
             )
