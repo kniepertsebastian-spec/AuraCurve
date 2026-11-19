@@ -52,7 +52,6 @@ import com.auracurve.app.audio.AudioEffectDescriptor
 import com.auracurve.app.integration.PlayerSource
 import com.auracurve.app.preset.BuiltInGenrePresets
 import com.auracurve.app.preset.Preset
-import com.auracurve.app.preset.PresetIntensity
 import com.auracurve.app.ui.equalizer.CurvePreview
 import com.auracurve.app.ui.equalizer.EqualizerScreen
 import com.auracurve.app.ui.equalizer.appLabelFor
@@ -84,7 +83,7 @@ fun MainScreen(
     val settings by viewModel.processingSettings.collectAsStateWithLifecycle()
     val activePreset by viewModel.activePreset.collectAsStateWithLifecycle()
     val customPresetsOnly by viewModel.customPresetsOnly.collectAsStateWithLifecycle()
-    val selectedGenreIntensity by viewModel.selectedGenreIntensity.collectAsStateWithLifecycle()
+    val moreIntensity by viewModel.moreIntensity.collectAsStateWithLifecycle()
     val activeCorrectionProfile by viewModel.activeCorrectionProfile.collectAsStateWithLifecycle()
     val allCorrectionProfiles by viewModel.allCorrectionProfiles.collectAsStateWithLifecycle()
     val suggestedCorrectionProfile by viewModel.suggestedCorrectionProfile.collectAsStateWithLifecycle()
@@ -278,8 +277,7 @@ fun MainScreen(
                 activePreset = activePreset,
                 customPresets = customPresetsOnly,
                 genrePresets = BuiltInGenrePresets.all,
-                intensities = PresetIntensity.entries,
-                selectedGenreIntensity = selectedGenreIntensity,
+                moreIntensity = moreIntensity,
                 activeCorrectionProfile = activeCorrectionProfile,
                 allCorrectionProfiles = allCorrectionProfiles,
                 suggestedCorrectionProfile = suggestedCorrectionProfile,
@@ -326,7 +324,7 @@ fun MainScreen(
                 onOpenSourcePicker = { viewModel.openSourcePicker() },
                 onBypassToggled = { viewModel.setBypass(it) },
                 onPresetSelected = { viewModel.selectPreset(it) },
-                onGenreIntensitySelected = { genre, intensity -> viewModel.selectGenreIntensity(genre, intensity) },
+                onMoreIntensityChanged = viewModel::setMoreIntensity,
                 onCorrectionProfileSelected = { viewModel.selectCorrectionProfile(it) },
                 onAcceptSuggestedCorrectionProfile = { viewModel.acceptSuggestedCorrectionProfile() },
                 onDismissSuggestedCorrectionProfile = { viewModel.dismissSuggestedCorrectionProfile() },
@@ -373,53 +371,55 @@ fun MainScreen(
                 onMacroHaerteChanged = { viewModel.setMacroHaerte(it) },
                 onBandGainChanged = { idx, gain -> viewModel.setBandGain(idx, gain) },
                 onRetryAttach = { viewModel.retryAttach() },
-                modifier = Modifier.weight(1f),
-            )
-
-            // Diagnostics and debug tools stay out of the way: one collapsed entry, opened on
-            // demand (Settings -> Diagnostics). The bar is horizontally scrollable because
-            // the buttons don't fit one screen width.
-            TextButton(
-                onClick = { showMoreTools = !showMoreTools },
-                modifier = Modifier.padding(horizontal = 8.dp),
-            ) {
-                Text(stringResource(if (showMoreTools) R.string.more_tools_hide else R.string.more_tools_show))
-            }
-            if (showMoreTools) {
-                Row(
-                    modifier =
-                        Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                ) {
-                    OutlinedButton(onClick = onNavigateToDiagnostics) {
-                        Text(stringResource(R.string.diagnostics_button))
+                // Diagnostics and debug tools sit at the end of the Device tab instead of taking a
+                // row under every tab.
+                deviceTabFooter = {
+                    // One collapsed entry, opened on demand. The button row scrolls sideways because
+                    // the buttons don't fit one screen width.
+                    TextButton(
+                        onClick = { showMoreTools = !showMoreTools },
+                        modifier = Modifier.padding(top = 8.dp),
+                    ) {
+                        Text(stringResource(if (showMoreTools) R.string.more_tools_hide else R.string.more_tools_show))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    OutlinedButton(onClick = { viewModel.toggleDebugEffects() }) {
-                        Text(
-                            stringResource(
-                                if (showDebugEffects) R.string.hide_debug_effects else R.string.show_debug_effects,
-                            ),
-                        )
-                    }
-                }
-            }
-
-            if (showDebugEffects) {
-                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-                    Text(text = stringResource(R.string.debug_effects_title), style = MaterialTheme.typography.titleMedium)
-                    if (descriptors.isEmpty()) {
-                        Text(text = stringResource(R.string.debug_effects_empty))
-                    } else {
-                        LazyColumn(modifier = Modifier.height(100.dp)) {
-                            items(descriptors) { descriptor ->
-                                EffectDescriptorRow(descriptor)
+                    if (showMoreTools) {
+                        Row(
+                            modifier =
+                                Modifier
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(vertical = 8.dp),
+                        ) {
+                            OutlinedButton(onClick = onNavigateToDiagnostics) {
+                                Text(stringResource(R.string.diagnostics_button))
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            OutlinedButton(onClick = { viewModel.toggleDebugEffects() }) {
+                                Text(
+                                    stringResource(
+                                        if (showDebugEffects) R.string.hide_debug_effects else R.string.show_debug_effects,
+                                    ),
+                                )
                             }
                         }
                     }
-                }
-            }
+
+                    if (showDebugEffects) {
+                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                            Text(text = stringResource(R.string.debug_effects_title), style = MaterialTheme.typography.titleMedium)
+                            if (descriptors.isEmpty()) {
+                                Text(text = stringResource(R.string.debug_effects_empty))
+                            } else {
+                                LazyColumn(modifier = Modifier.height(100.dp)) {
+                                    items(descriptors) { descriptor ->
+                                        EffectDescriptorRow(descriptor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

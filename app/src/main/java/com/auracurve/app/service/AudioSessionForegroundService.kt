@@ -22,6 +22,7 @@ import com.auracurve.app.audio.AudioRouteRepository
 import com.auracurve.app.audio.AudioSessionRepository
 import com.auracurve.app.audio.SystemVolumeRepository
 import com.auracurve.app.diagnostics.DiagnosticsRecorder
+import com.auracurve.app.eq.EqController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -70,6 +71,11 @@ class AudioSessionForegroundService : LifecycleService() {
     @Inject
     lateinit var sessionScanner: com.auracurve.app.audio.SessionScanner
 
+    // E-008 stage 2: the equalizer's control logic, process-wide. Created here at the latest, so
+    // quick tiles and Android Auto can steer the EQ without the app on screen.
+    @Inject
+    lateinit var eqController: EqController
+
     private var foregroundStarted = false
 
     override fun onCreate() {
@@ -84,6 +90,10 @@ class AudioSessionForegroundService : LifecycleService() {
         playbackMonitor.startMonitoring()
 
         lifecycleScope.launch {
+            // E-008: attach() applies whatever the engine holds, so the controller puts the saved
+            // sound on it (preset, route binding, player curve) before the first session attaches.
+            eqController.awaitRestored()
+            diagnosticsRecorder.record("Saved EQ settings at service start: restored by the EQ controller")
             sessionRepository.activeSession.collect { session ->
                 if (session != null) {
                     // Only monitor volume changes while an active session exists to avoid
