@@ -135,7 +135,7 @@ class EqCharacterizationTest {
             file.writeText(actual)
             fail("Recorded new golden file ${file.path}; review it and run the test again")
         }
-        assertEquals(file.readText(), actual)
+        assertEquals(file.readText().replace("\r\n", "\n"), actual)
     }
 
     private val savedState =
