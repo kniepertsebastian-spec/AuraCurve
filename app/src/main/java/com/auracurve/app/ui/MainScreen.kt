@@ -325,6 +325,8 @@ fun MainScreen(
                 onMoreIntensityChanged = viewModel::setMoreIntensity,
                 onCorrectionProfileSelected = { viewModel.selectCorrectionProfile(it) },
                 onAcceptSuggestedCorrectionProfile = { viewModel.acceptSuggestedCorrectionProfile() },
+                onSearchHeadphones = { viewModel.searchHeadphones(it) },
+                onHeadphoneChosen = { viewModel.applyCatalogHeadphone(it) },
                 onDismissSuggestedCorrectionProfile = { viewModel.dismissSuggestedCorrectionProfile() },
                 onHeadphoneAcousticsChanged = { viewModel.setHeadphoneAcousticsOverride(it) },
                 onHeadphonePowerChanged = { viewModel.setHeadphonePower(it) },
