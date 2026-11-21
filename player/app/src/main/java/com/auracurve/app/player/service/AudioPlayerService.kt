@@ -13,6 +13,7 @@ import android.os.Looper
 import android.os.Process
 import android.os.SystemClock
 import androidx.annotation.OptIn
+import androidx.core.app.NotificationManagerCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
@@ -33,6 +34,7 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionError
 import com.auracurve.app.auto.AutoMediaId
 import com.auracurve.app.playback.SleepTimerSetting
@@ -87,13 +89,19 @@ import kotlin.random.Random
  * own, kept in step with the player), the lock screen, Bluetooth buttons, Wear, and Android
  * Auto, which also browses the app's playlists through it (AutoCatalogHolder).
  *
- * The app's screens talk to it with intents (ACTION_*; tracks for a new queue wait in
- * QueueRequests) and read NowPlayingState / PlaybackQueueState, all in the same process.
+ * The app's screens send it commands through PlayerCommands (ACTION_*; tracks for a new queue
+ * wait in QueueRequests) and read NowPlayingState / PlaybackQueueState, all in the same process.
+ * The service is exported for the system and the car, so its onStartCommand does not read those
+ * commands: another app's start-service intent cannot stop, seek or empty the queue. Who may
+ * connect a controller to the session, and with which commands, is ControllerAccess.
  */
 @OptIn(UnstableApi::class)
 class AudioPlayerService : MediaLibraryService() {
     companion object {
-        const val CHANNEL_ID = "sound_cloud_equalizer_player_channel"
+        const val CHANNEL_ID = "auracurve_player_channel"
+
+        // The channel's id up to AuraCurve roadmap 01; removed on devices that still have it.
+        private const val LEGACY_CHANNEL_ID = "sound_cloud_equalizer_player_channel"
         const val NOTIFICATION_ID = 1001
 
         const val ACTION_PAUSE = "com.auracurve.app.player.PAUSE"
@@ -150,18 +158,17 @@ class AudioPlayerService : MediaLibraryService() {
         private const val CONTENT_STYLE_PLAYABLE_HINT = "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT"
         private const val CONTENT_STYLE_LIST = 1
 
-        // The car's list shows the user's playlists: only the system itself, Android Auto and
-        // the assistant may browse it, not any app that asks.
-        private val TRUSTED_BROWSERS =
-            setOf(
-                "com.google.android.projection.gearhead",
-                "com.google.android.googlequicksearchbox",
-                "com.google.android.carassistant",
-                "com.google.android.gms",
-                "com.android.systemui",
-                "com.android.bluetooth",
-                "android",
-            )
+        // The service that runs in this process (main thread only), for PlayerCommands. Commands
+        // sent before it is created wait here and are handled at the end of onCreate.
+        private var running: AudioPlayerService? = null
+        private val pendingCommands = ArrayDeque<Intent>()
+
+        // Called by PlayerCommands on the main thread.
+        internal fun deliver(command: Intent) {
+            val service = running
+            val exoPlayer = service?.player
+            if (exoPlayer == null) pendingCommands.addLast(command) else service.handleCommand(exoPlayer, command)
+        }
     }
 
     private var player: ExoPlayer? = null
@@ -252,9 +259,13 @@ class AudioPlayerService : MediaLibraryService() {
                 .setSessionActivity(openPlayerPendingIntent())
                 .build()
         session = librarySession
-        // The app's own screens send intents instead of connecting a controller; without this the
+        // The app's own screens send commands instead of connecting a controller; without this the
         // notification would only appear once the system or a car connected.
         addSession(librarySession)
+        NotificationManagerCompat.from(this).deleteNotificationChannel(LEGACY_CHANNEL_ID)
+
+        running = this
+        while (pendingCommands.isNotEmpty()) handleCommand(exoPlayer, pendingCommands.removeFirst())
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
@@ -474,17 +485,8 @@ class AudioPlayerService : MediaLibraryService() {
 
     // --- Commands from the app's screens -------------------------------------------------
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int,
-    ): Int {
-        val result = super.onStartCommand(intent, flags, startId)
-        val exoPlayer = player
-        if (intent != null && exoPlayer != null) handleCommand(exoPlayer, intent)
-        return result
-    }
-
+    // Only from PlayerCommands, inside this process (see deliver). onStartCommand is Media3's own
+    // and does not look at ACTION_*: the service is exported.
     private fun handleCommand(
         exoPlayer: ExoPlayer,
         intent: Intent,
@@ -753,6 +755,7 @@ class AudioPlayerService : MediaLibraryService() {
     }
 
     override fun onDestroy() {
+        if (running === this) running = null
         cancelNetworkRetry()
         stopProgressTicker()
         mainHandler.removeCallbacks(fadeTicker)
@@ -830,6 +833,33 @@ class AudioPlayerService : MediaLibraryService() {
     // --- Android Auto: browsing the app's lists and "play this" ------------------------------
 
     private inner class LibraryCallback : MediaLibrarySession.Callback {
+        private val access = ControllerAccessCheck(packageManager)
+
+        // Who may connect, and with which commands (see ControllerAccess). Decided once here;
+        // browsing and "play this" below check again, in case a command arrives another way.
+        override fun onConnectAsync(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+        ): ListenableFuture<MediaSession.ConnectionResult> {
+            val result =
+                when (access.of(controller)) {
+                    ControllerAccess.FULL ->
+                        MediaSession.ConnectionResult
+                            .AcceptedResultBuilder(session, controller)
+                            .setAvailableSessionCommands(MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS)
+                            .setAvailablePlayerCommands(MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS)
+                            .build()
+                    ControllerAccess.TRANSPORT ->
+                        MediaSession.ConnectionResult
+                            .AcceptedResultBuilder(session, controller)
+                            .setAvailableSessionCommands(SessionCommands.EMPTY)
+                            .setAvailablePlayerCommands(ControllerAccess.TRANSPORT_PLAYER_COMMANDS)
+                            .build()
+                    ControllerAccess.NONE -> MediaSession.ConnectionResult.reject()
+                }
+            return Futures.immediateFuture(result)
+        }
+
         override fun onGetLibraryRoot(
             session: MediaLibrarySession,
             browser: MediaSession.ControllerInfo,
@@ -878,7 +908,9 @@ class AudioPlayerService : MediaLibraryService() {
 
         // "Play this" in the car names a track of a folder: the whole folder becomes the queue,
         // from that track on. Voice ("play X") arrives as an item without id but with the words.
-        // Items that already are queue entries (with an address) go through unchanged.
+        // Only trusted browsers may set a queue, and only by id or words: items that already carry
+        // an address (localConfiguration) are accepted from this app alone, so no other app can
+        // make the player load a URI of its choice.
         override fun onSetMediaItems(
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
@@ -886,10 +918,17 @@ class AudioPlayerService : MediaLibraryService() {
             startIndex: Int,
             startPositionMs: Long,
         ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            resetFailureState()
-            if (mediaItems.isNotEmpty() && mediaItems.all { it.localConfiguration != null }) {
+            if (!isTrustedBrowser(controller)) {
+                return Futures.immediateFailedFuture(SecurityException("This controller may not set the queue"))
+            }
+            if (mediaItems.any { it.localConfiguration != null }) {
+                if (!isOwnApp(controller) || mediaItems.any { it.localConfiguration == null }) {
+                    return Futures.immediateFailedFuture(SecurityException("Media items with an address only come from this app"))
+                }
+                resetFailureState()
                 return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(mediaItems, startIndex, startPositionMs))
             }
+            resetFailureState()
             val first = mediaItems.firstOrNull() ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
             val catalog = AutoCatalogHolder.catalog ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
             val trackId = first.mediaId.takeIf { AutoMediaId.isTrack(it) }
@@ -908,8 +947,24 @@ class AudioPlayerService : MediaLibraryService() {
             }
         }
 
-        private fun isTrustedBrowser(browser: MediaSession.ControllerInfo): Boolean =
-            browser.uid == Process.myUid() || browser.uid < Process.FIRST_APPLICATION_UID || browser.packageName in TRUSTED_BROWSERS
+        // Adding to the queue: like Media3's default (only items with an address), but from this
+        // app alone - another app must not inject a URI this way either.
+        override fun onAddMediaItems(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            mediaItems: MutableList<MediaItem>,
+        ): ListenableFuture<MutableList<MediaItem>> {
+            if (!isOwnApp(controller) || mediaItems.any { it.localConfiguration == null }) {
+                return Futures.immediateFailedFuture(UnsupportedOperationException())
+            }
+            return Futures.immediateFuture(mediaItems)
+        }
+
+        // The car's list shows the user's playlists: only the app, the system, and Google's car,
+        // assistant and Wear apps (checked by signing certificate) may browse it or start a queue.
+        private fun isTrustedBrowser(browser: MediaSession.ControllerInfo): Boolean = access.of(browser) == ControllerAccess.FULL
+
+        private fun isOwnApp(controller: MediaSession.ControllerInfo): Boolean = controller.uid == Process.myUid()
 
         private fun folderItem(mediaId: String) =
             MediaItem

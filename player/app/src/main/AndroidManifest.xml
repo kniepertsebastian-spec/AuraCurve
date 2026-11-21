@@ -13,9 +13,13 @@
         <!--
           The built-in player: one media library session for the notification, the lock screen,
           Bluetooth, Wear and Android Auto, which also browses the app's playlists through it.
-          Exported for the system and the car; AudioPlayerService only lets the system, Android
-          Auto and the assistant browse. The app's manifest adds the Android Auto entries
-          (browser and voice search) next to its automotive declaration.
+          Exported for the system and the car. Who may connect, and with which commands, is
+          ControllerAccess: the app, the system and Google's car, assistant and Wear apps (checked
+          by signing certificate) fully, media-control apps only for play/pause/skip/seek, any
+          other app not at all. The app's own commands do not use start-service intents but
+          PlayerCommands inside the process, so another app's intent cannot stop or seek the
+          player. The app's manifest adds the Android Auto entries (browser and voice search) next
+          to its automotive declaration.
         -->
         <service
             android:name=".service.AudioPlayerService"

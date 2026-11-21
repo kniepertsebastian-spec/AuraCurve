@@ -21,3 +21,12 @@
 
 # Room entities and the schema JSON are read by generated code; Room's own rules cover the rest.
 -keep class com.auracurve.app.data.** { *; }
+
+# AuraCurve roadmap 01, step 3: verbose, debug and info logging is stripped from the release build
+# (with proguard-android-optimize.txt R8 removes the calls; their arguments go too where they have
+# no other use). Warnings and errors stay: they are what a bug report needs.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+}

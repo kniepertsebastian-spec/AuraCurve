@@ -1,12 +1,12 @@
 package com.auracurve.app.integration
 
 import android.content.Context
-import android.content.Intent
 import com.auracurve.app.player.PlayerLaunch
 import com.auracurve.app.player.playback.PlayerCurve
 import com.auracurve.app.player.playback.PlayerCurveState
 import com.auracurve.app.player.playback.VirtualBassState
 import com.auracurve.app.player.service.AudioPlayerService
+import com.auracurve.app.player.service.PlayerCommands
 import com.auracurve.app.preset.TargetPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -22,21 +22,9 @@ class AndroidPlayerBridge
             context.startActivity(PlayerLaunch.openPlayerIntent(context))
         }
 
-        override fun stopPlayer() {
-            val stopIntent =
-                Intent(context, AudioPlayerService::class.java).apply {
-                    action = AudioPlayerService.ACTION_STOP
-                }
-            context.startService(stopIntent)
-        }
+        override fun stopPlayer() = PlayerCommands.send(context, AudioPlayerService.ACTION_STOP)
 
-        override fun togglePlayback() {
-            val toggleIntent =
-                Intent(context, AudioPlayerService::class.java).apply {
-                    action = AudioPlayerService.ACTION_TOGGLE_PLAYBACK
-                }
-            context.startService(toggleIntent)
-        }
+        override fun togglePlayback() = PlayerCommands.send(context, AudioPlayerService.ACTION_TOGGLE_PLAYBACK)
 
         override fun setVirtualBassMix(mix: Float) {
             VirtualBassState.mix = mix.coerceIn(0f, 1f)
