@@ -19,6 +19,7 @@ import androidx.media3.session.MediaSession
  *   smartwatch companion app) - they can already press these buttons on the media notification.
  * - [NONE]: any other app. The connection is refused.
  */
+@OptIn(UnstableApi::class)
 enum class ControllerAccess {
     FULL,
     TRANSPORT,
