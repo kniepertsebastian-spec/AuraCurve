@@ -154,12 +154,11 @@ class AndroidPlayerController
         private fun trySend(
             action: String,
             configure: Intent.() -> Unit = {},
-        ): Boolean {
-            return PlayerServiceStart.start(
+        ): Boolean =
+            PlayerServiceStart.start(
                 start = { PlayerCommands.send(context, action, configure) },
                 onRefused = { Log.w(TAG, "Player command $action dropped: app in background, service not running") },
             )
-        }
 
         private companion object {
             const val TAG = "PlayerController"
