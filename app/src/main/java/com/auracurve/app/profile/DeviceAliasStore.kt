@@ -39,7 +39,7 @@ class SharedPreferencesDeviceAliasStore
     constructor(
         @param:ApplicationContext context: Context,
     ) : DeviceAliasStore {
-        private val prefs = context.getSharedPreferences("device_aliases", Context.MODE_PRIVATE)
+        private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         private val state = MutableStateFlow(prefs.all.mapNotNull { (key, value) -> (value as? String)?.let { key to it } }.toMap())
         override val aliases: StateFlow<Map<String, String>> = state.asStateFlow()
 
@@ -50,5 +50,9 @@ class SharedPreferencesDeviceAliasStore
             val trimmed = name.trim()
             prefs.edit().apply { if (trimmed.isEmpty()) remove(routeId) else putString(routeId, trimmed) }.apply()
             state.value = if (trimmed.isEmpty()) state.value - routeId else state.value + (routeId to trimmed)
+        }
+
+        companion object {
+            const val PREFS_NAME = "device_aliases"
         }
     }

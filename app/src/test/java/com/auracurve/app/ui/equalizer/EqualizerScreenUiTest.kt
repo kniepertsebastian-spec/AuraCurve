@@ -5,7 +5,9 @@ import android.graphics.Bitmap
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -22,6 +24,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.height
 import com.auracurve.app.R
 import com.auracurve.app.audio.AudioDeviceType
@@ -80,63 +83,68 @@ class EqualizerScreenUiTest {
         activePreset: Preset = BuiltInPresets.all.first(),
         customPresets: List<Preset> = emptyList(),
         deviceTabFooter: (@Composable ColumnScope.() -> Unit)? = null,
+        fontScale: Float = 1f,
     ) {
         compose.setContent {
-            AuraCurveTheme {
-                EqualizerScreen(
-                    state = state,
-                    route = AudioRoute(AudioDeviceType.BLUETOOTH, "Sony WH-1000XM5", "bt_sony"),
-                    settings = settings,
-                    bands = bands,
-                    activePreset = activePreset,
-                    customPresets = customPresets,
-                    genrePresets = BuiltInGenrePresets.all,
-                    moreIntensity = false,
-                    activeCorrectionProfile = BuiltInCorrectionProfiles.None,
-                    allCorrectionProfiles = listOf(BuiltInCorrectionProfiles.None),
-                    suggestedCorrectionProfile = null,
-                    effectiveHeadphoneAcoustics = true,
-                    activeGoal = SoundGoal.entries.first(),
-                    onGoalSelected = {},
-                    pathLabel = "Music app",
-                    compare = null,
-                    onStartCompare = {},
-                    onCompareSide = {},
-                    onEndCompare = {},
-                    headphonePower = HeadphonePower(),
-                    activeContext = null,
-                    currentLevelDb = -12f,
-                    isDirty = false,
-                    onMasterToggled = {},
-                    onOpenSourcePicker = {},
-                    onBypassToggled = {},
-                    onPresetSelected = {},
-                    onMoreIntensityChanged = {},
-                    onCorrectionProfileSelected = {},
-                    onImportCorrectionProfileRequested = {},
-                    onExportCorrectionProfile = {},
-                    onAcceptSuggestedCorrectionProfile = {},
-                    onDismissSuggestedCorrectionProfile = {},
-                    onHeadphoneAcousticsChanged = {},
-                    onHeadphonePowerChanged = {},
-                    onContextModeChanged = {},
-                    onLoudnessCompensationChanged = {},
-                    onSubsonicFilterChanged = {},
-                    onVirtualBassChanged = {},
-                    onResetToActivePreset = {},
-                    onSaveAsNewRequest = {},
-                    onDuplicatePreset = {},
-                    onRenamePresetRequest = {},
-                    onDeletePresetRequest = {},
-                    onSharePreset = {},
-                    onImportPresetLinkRequested = {},
-                    onMacroBassChanged = {},
-                    onMacroPunchChanged = {},
-                    onMacroHaerteChanged = {},
-                    onBandGainChanged = { _, _ -> },
-                    onRetryAttach = {},
-                    deviceTabFooter = deviceTabFooter,
-                )
+            // The system's font size setting: text grows, layout in dp does not.
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                AuraCurveTheme {
+                    EqualizerScreen(
+                        state = state,
+                        route = AudioRoute(AudioDeviceType.BLUETOOTH, "Sony WH-1000XM5", "bt_sony"),
+                        settings = settings,
+                        bands = bands,
+                        activePreset = activePreset,
+                        customPresets = customPresets,
+                        genrePresets = BuiltInGenrePresets.all,
+                        moreIntensity = false,
+                        activeCorrectionProfile = BuiltInCorrectionProfiles.None,
+                        allCorrectionProfiles = listOf(BuiltInCorrectionProfiles.None),
+                        suggestedCorrectionProfile = null,
+                        effectiveHeadphoneAcoustics = true,
+                        activeGoal = SoundGoal.entries.first(),
+                        onGoalSelected = {},
+                        pathLabel = "Music app",
+                        compare = null,
+                        onStartCompare = {},
+                        onCompareSide = {},
+                        onEndCompare = {},
+                        headphonePower = HeadphonePower(),
+                        activeContext = null,
+                        currentLevelDb = -12f,
+                        isDirty = false,
+                        onMasterToggled = {},
+                        onOpenSourcePicker = {},
+                        onBypassToggled = {},
+                        onPresetSelected = {},
+                        onMoreIntensityChanged = {},
+                        onCorrectionProfileSelected = {},
+                        onImportCorrectionProfileRequested = {},
+                        onExportCorrectionProfile = {},
+                        onAcceptSuggestedCorrectionProfile = {},
+                        onDismissSuggestedCorrectionProfile = {},
+                        onHeadphoneAcousticsChanged = {},
+                        onHeadphonePowerChanged = {},
+                        onContextModeChanged = {},
+                        onLoudnessCompensationChanged = {},
+                        onSubsonicFilterChanged = {},
+                        onVirtualBassChanged = {},
+                        onResetToActivePreset = {},
+                        onSaveAsNewRequest = {},
+                        onDuplicatePreset = {},
+                        onRenamePresetRequest = {},
+                        onDeletePresetRequest = {},
+                        onSharePreset = {},
+                        onImportPresetLinkRequested = {},
+                        onMacroBassChanged = {},
+                        onMacroPunchChanged = {},
+                        onMacroHaerteChanged = {},
+                        onBandGainChanged = { _, _ -> },
+                        onRetryAttach = {},
+                        deviceTabFooter = deviceTabFooter,
+                    )
+                }
             }
         }
     }
@@ -193,6 +201,29 @@ class EqualizerScreenUiTest {
         compose.onAllNodesWithText(text(R.string.context_title)).onFirst().performScrollTo()
         assertCurveInHead()
     }
+
+    // The system font size at 130 % and 200 %: the curve stays in the head, every tab can still be
+    // opened and keeps its first section.
+    private fun assertTabsReachableAtFontScale(
+        fontScale: Float,
+        name: String,
+    ) {
+        showEqualizer(fontScale = fontScale)
+
+        assertCurveInHead()
+        sectionsByTab.entries.forEachIndexed { index, (tabLabel, titles) ->
+            openTab(tabLabel)
+            compose.onAllNodesWithText(text(titles.first())).onFirst().assertExists()
+            assertCurveInHead()
+            compose.onRoot().saveScreenshot("font-$name-0${index + 1}")
+        }
+    }
+
+    @Test
+    fun at130PercentFontTheCurveAndAllTabsStayReachable() = assertTabsReachableAtFontScale(1.3f, "130")
+
+    @Test
+    fun at200PercentFontTheCurveAndAllTabsStayReachable() = assertTabsReachableAtFontScale(2.0f, "200")
 
     // The whole Sound tab on one tall screen, to check how much of it a normal phone shows
     // without scrolling (411 x 891 dp: everything down to "Bass & loudness").
