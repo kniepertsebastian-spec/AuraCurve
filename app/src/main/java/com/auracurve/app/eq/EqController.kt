@@ -17,7 +17,6 @@ import com.auracurve.app.correction.CorrectionProfile
 import com.auracurve.app.correction.CorrectionProfileRepository
 import com.auracurve.app.data.preset.PresetShareCodec
 import com.auracurve.app.dsp.EqualizerInterpolator
-import com.auracurve.app.dsp.HeadphoneDynamicsEasing
 import com.auracurve.app.dsp.HeadphonePower
 import com.auracurve.app.dsp.HeadroomCalculator
 import com.auracurve.app.dsp.LoudnessMatch
@@ -71,26 +70,6 @@ import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlin.math.abs
 
-// How much of the peak EQ boost the automatic input-gain cut pre-cancels before the
-// signal ever reaches dynamics processing. At 1.0 the boost is fully cancelled before
-// the Limiter (still a hard, unchanged 10:1-ratio ceiling) gets a chance to do its own
-// job, which made every preset sound indistinguishable from flat - see roadmap.md
-// Session 16. Lowered further to 0.3 in Session 17 at the user's explicit request for
-// more aggressive kicks/less pre-cancellation, after 0.5 still felt too subtle - the
-// Limiter is still unchanged and remains the actual clipping safety net. Lowered again
-// to 0.2, then to 0.1, both in Session 24 (same sitting - the first cut "it's supposed
-// to bang"), alongside a matching loosening of the MBC makeup gain
-// (AndroidAudioEngine.applyInternal). At 0.1 this pre-cancellation stage is nearly a
-// no-op; the Limiter downstream is now doing almost all of the actual safety work and
-// is the only thing standing between a hot preset and true clipping - still an
-// unchanged, hard 10:1 ceiling, so it always holds the line, but it may need to work
-// noticeably harder/more audibly on already-loud presets or devices than before.
-// Raised back to 0.5 after a sound review: at 0.1 a +12 dB bass preset left the limiter
-// over 10 dB of reduction on bass-heavy tracks, which flattened and distorted exactly the
-// kicks it was meant to make hit harder. At 0.5 it works a few dB at most; the punch comes
-// from the MBC makeup gain instead.
-private const val INPUT_GAIN_SAFETY_RATIO = 0.5f
-private const val SPEAKER_INPUT_GAIN_SAFETY_RATIO = 0.8f
 private const val FEEDBACK_BUFFER = 8
 
 // Where a new parametric band is put first: free spots from the mids outwards.
@@ -752,7 +731,7 @@ class EqController
         }
 
         // The preset as it plays: with the "more intensity" step on top while the switch is on.
-        private fun intensified(preset: Preset): Preset = if (_moreIntensity.value) PresetIntensityBoost.apply(preset) else preset
+        private fun intensified(preset: Preset): Preset = PresetSettingsMapper.intensified(preset, _moreIntensity.value)
 
         // An old genre x intensity step (still reachable through a bound profile, a quick tile or
         // an older remote) becomes the genre's base; Aggressive and up switch "more intensity" on.
@@ -1049,91 +1028,31 @@ class EqController
             // removes the easing, and it never compounds across repeated calls.
             val preset = intensified(_activePreset.value)
             val easeDynamics = effectiveHeadphoneAcoustics.value && _headphonePower.value.easeDynamics
-            // An active context mode only ever tightens the genre's dynamics (lower
-            // threshold, higher ratio) and switches the compressor on; the headphone
-            // easing is applied on top of that.
-            val context = _activeContext.value?.let { BuiltInContextPresets.defaultFor(it) }
-            val baseMbcThresholdDb = context?.let { minOf(preset.mbcThresholdDb, it.mbcThresholdDb) } ?: preset.mbcThresholdDb
-            val baseMbcRatio = context?.let { maxOf(preset.mbcRatio, it.mbcRatio) } ?: preset.mbcRatio
-            val mbcThresholdDb =
-                if (easeDynamics) {
-                    HeadphoneDynamicsEasing.easedThresholdDb(baseMbcThresholdDb)
-                } else {
-                    baseMbcThresholdDb
-                }
-            val mbcRatio =
-                if (easeDynamics) {
-                    HeadphoneDynamicsEasing.easedRatio(baseMbcRatio)
-                } else {
-                    baseMbcRatio
-                }
+            val dynamics = PresetSettingsMapper.resolveDynamics(preset, _activeContext.value, easeDynamics)
             val newSettings =
                 _processingSettings.value.copy(
                     bandGainsDb = calculatedGains,
                     inputGainDb = safetyScaledInputGainDb(headroom.maxPositiveGainDb),
-                    mbcEnabled = preset.mbcEnabled || context != null,
-                    mbcThresholdDb = mbcThresholdDb,
-                    mbcRatio = mbcRatio,
+                    mbcEnabled = dynamics.mbcEnabled,
+                    mbcThresholdDb = dynamics.mbcThresholdDb,
+                    mbcRatio = dynamics.mbcRatio,
                     preEqGainsDb = preEqGainsFor(calculatedGains),
                 )
             applySettings(newSettings)
         }
 
-        private fun ProcessingSettings.withPreset(preset: Preset): ProcessingSettings {
-            val played = intensified(preset)
-            return copy(
-                inputGainDb = safetyScaledInputGainDb(played.requestedHeadroomDb),
-                macroBassDb = played.macroBassDb,
-                macroPunchDb = played.macroPunchDb,
-                macroHaerteDb = played.macroHaerteDb,
-                limiterEnabled = played.limiter.enabled,
-                limiterThresholdDb = played.limiter.thresholdDb,
-                mbcEnabled = played.mbcEnabled,
-                mbcThresholdDb = played.mbcThresholdDb,
-                mbcRatio = played.mbcRatio,
-            ).withContextFeatures(preset)
-        }
+        // The arithmetic lives in PresetSettingsMapper; these only supply the controller's state.
+        private fun ProcessingSettings.withPreset(preset: Preset): ProcessingSettings =
+            PresetSettingsMapper.withPreset(this, preset, _moreIntensity.value, _activeContext.value)
 
-        // The preset's own context features, merged with what the active context mode
-        // adds (the stronger of the two each, and a limiter at least as tight). With
-        // the mode off this is just the preset's values - so switching it off restores
-        // them, and switching genres keeps the mode's protection.
-        private fun ProcessingSettings.withContextFeatures(basePreset: Preset): ProcessingSettings {
-            val context = _activeContext.value?.let { BuiltInContextPresets.defaultFor(it) }
-            val baseLimiterThresholdDb = if (basePreset.limiter.enabled) basePreset.limiter.thresholdDb else 0f
-            return copy(
-                limiterEnabled = basePreset.limiter.enabled || context != null,
-                limiterThresholdDb =
-                    if (context == null) basePreset.limiter.thresholdDb else minOf(baseLimiterThresholdDb, context.limiter.thresholdDb),
-                loudnessMaxBoostDb = maxOf(basePreset.loudnessMaxBoostDb, context?.loudnessMaxBoostDb ?: 0f),
-                subsonicCutoffHz = maxOf(basePreset.subsonicCutoffHz, context?.subsonicCutoffHz ?: 0f),
-                virtualBassMix = maxOf(basePreset.virtualBassMix, context?.virtualBassMix ?: 0f),
-            )
-        }
+        private fun ProcessingSettings.withContextFeatures(basePreset: Preset): ProcessingSettings =
+            PresetSettingsMapper.withContextFeatures(this, basePreset, _activeContext.value)
 
-        private fun automaticInputGainDb(bandGainsDb: Map<Int, Float>): Float {
-            val peakBoostDb = bandGainsDb.values.maxOrNull()?.coerceAtLeast(0f) ?: 0f
-            return safetyScaledInputGainDb(peakBoostDb)
-        }
+        private fun automaticInputGainDb(bandGainsDb: Map<Int, Float>): Float =
+            PresetSettingsMapper.automaticInputGainDb(bandGainsDb, _activeContext.value)
 
-        // Guard against returning -0.0f: boxed Float.equals() (used by assertEquals in
-        // tests, and by anything else comparing boxed Floats) treats -0.0f and 0.0f as
-        // unequal even though == says they're the same.
-        // Small speaker drivers distort mechanically before anything clips digitally, and
-        // the limiter does not protect the membrane - so the speaker mode pulls the input
-        // gain down much further than the default. A soundbar has the same small drivers in
-        // a long box (the 40-80 Hz fundament of its mode pushes them hardest), so it gets
-        // the same protection.
-        private fun inputGainSafetyRatio(): Float =
-            when (_activeContext.value) {
-                SoundContext.BLUETOOTH_SPEAKER, SoundContext.SOUNDBAR -> SPEAKER_INPUT_GAIN_SAFETY_RATIO
-                else -> INPUT_GAIN_SAFETY_RATIO
-            }
-
-        private fun safetyScaledInputGainDb(boostDb: Float): Float {
-            if (boostDb == 0f) return 0f
-            return -(boostDb * inputGainSafetyRatio())
-        }
+        private fun safetyScaledInputGainDb(boostDb: Float): Float =
+            PresetSettingsMapper.safetyScaledInputGainDb(boostDb, _activeContext.value)
 
         private fun applySettings(settings: ProcessingSettings) {
             _processingSettings.value = settings
