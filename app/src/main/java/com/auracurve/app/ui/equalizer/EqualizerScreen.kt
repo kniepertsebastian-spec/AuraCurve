@@ -72,23 +72,13 @@ import com.auracurve.app.audio.ProcessingSettings
 import com.auracurve.app.autoeq.AutoEqCatalogEntry
 import com.auracurve.app.context.SoundContext
 import com.auracurve.app.correction.CorrectionProfile
-import com.auracurve.app.dsp.CurveComposer
-import com.auracurve.app.dsp.HeadphoneComfortCurve
 import com.auracurve.app.dsp.HeadphonePower
-import com.auracurve.app.dsp.HeadroomCalculator
 import com.auracurve.app.dsp.HeadroomWarningLevel
-import com.auracurve.app.dsp.HeadroomWarningLevelCalculator
-import com.auracurve.app.dsp.LoudnessCompensationCurve
 import com.auracurve.app.dsp.ParametricBand
-import com.auracurve.app.dsp.SubsonicFilterCurve
-import com.auracurve.app.dsp.VirtualBassApproxCurve
-import com.auracurve.app.dsp.VolumeLevelMapper
-import com.auracurve.app.preset.BuiltInContextPresets
 import com.auracurve.app.preset.GenrePreset
 import com.auracurve.app.preset.GenrePresetGroups
 import com.auracurve.app.preset.Preset
 import com.auracurve.app.preset.SoundGoal
-import com.auracurve.app.preset.TargetPoint
 import com.auracurve.app.ui.eq.EqStatus
 import com.auracurve.app.ui.eq.EqStatusKind
 import com.auracurve.app.ui.eq.EqStatusLine
@@ -192,63 +182,39 @@ fun EqualizerScreen(
             )
         }
     }
-    // M3/M4: headroom from the combined correction+voicing curve, not just the
-    // highest of the discrete post-mapping band gains - see HeadroomCalculator.
-    // Mirrors MainViewModel.recalculateBandGains()'s own combination (including
-    // the HeadphoneComfortCurve and LoudnessCompensationCurve fold-ins while
-    // effectiveHeadphoneAcoustics is on) so the banner here always agrees with
-    // the inputGainDb the engine actually applied.
-    val headphoneCurve = if (effectiveHeadphoneAcoustics) HeadphoneComfortCurve.curve(headphonePower.bassDb) else emptyList()
-    val loudnessCurve =
-        if (effectiveHeadphoneAcoustics) {
-            LoudnessCompensationCurve.forLevel(currentLevelDb = currentLevelDb, maxBoostDb = headphonePower.loudnessMaxDb)
-        } else {
-            emptyList()
+    val curveModel =
+        remember(
+            settings,
+            bands,
+            activePreset,
+            activeCorrectionProfile,
+            activeGoal,
+            activeContext,
+            headphonePower,
+            effectiveHeadphoneAcoustics,
+            currentLevelDb,
+            isOwnPlayerSession,
+            preEqActive,
+        ) {
+            EqualizerCurveModel.of(
+                settings = settings,
+                bands = bands,
+                activePreset = activePreset,
+                activeCorrectionProfile = activeCorrectionProfile,
+                activeGoal = activeGoal,
+                activeContext = activeContext,
+                headphonePower = headphonePower,
+                effectiveHeadphoneAcoustics = effectiveHeadphoneAcoustics,
+                currentLevelDb = currentLevelDb,
+                isOwnPlayerSession = isOwnPlayerSession,
+                preEqActive = preEqActive,
+            )
         }
-    // Subsonic high-pass + preset loudness compensation, same as MainViewModel.contextCurve().
-    val contextCurve =
-        CurveComposer.combine(
-            listOf(
-                SubsonicFilterCurve.forCutoff(settings.subsonicCutoffHz),
-                if (effectiveHeadphoneAcoustics) {
-                    emptyList()
-                } else {
-                    VolumeLevelMapper.compensationCurve(currentLevelDb, settings.loudnessMaxBoostDb)
-                },
-            ),
-        )
-    val combinedCurve =
-        CurveComposer.combine(
-            listOf(
-                activeCorrectionProfile.curve,
-                activePreset.targetCurve,
-                headphoneCurve,
-                loudnessCurve,
-                activeGoal.curve,
-                activeContext?.let { BuiltInContextPresets.defaultFor(it).targetCurve }.orEmpty(),
-                if (!isOwnPlayerSession && preEqActive) VirtualBassApproxCurve.forMix(settings.virtualBassMix) else emptyList(),
-                contextCurve,
-            ),
-        )
-    val headroom =
-        HeadroomCalculator.fromCombinedCurve(
-            combinedCurve = combinedCurve,
-            macroBassDb = settings.macroBassDb,
-            macroPunchDb = settings.macroPunchDb,
-            macroHaerteDb = settings.macroHaerteDb,
-        )
-
-    val warningLevel = HeadroomWarningLevelCalculator.fromHeadroom(headroom)
+    val headroom = curveModel.headroom
+    val warningLevel = curveModel.warningLevel
     val clippingRisk = headroom.isClippingRisk && settings.masterEnabled
     val statusKind = EqStatus.kind(state, settings)
-    // The hero draws what the EQ is actually set to: the applied band gains (preset,
-    // macros and manual band edits included). Before the device has reported its bands
-    // there are none, so it falls back to the combined target curve.
-    val bandPoints =
-        bands
-            .sortedBy { it.centerFreqHz }
-            .map { band -> TargetPoint(band.centerFreqHz.toFloat(), settings.bandGainsDb[band.index] ?: 0f) }
-    val curvePoints = if (bandPoints.isEmpty()) combinedCurve else bandPoints
+    val curvePoints = curveModel.curvePoints
     val curvePeak = CurveGeometry.strongestChange(curvePoints)
     val curveDescription =
         if (curvePeak != null) {
@@ -262,16 +228,7 @@ fun EqualizerScreen(
         }
 
     var selectedBand by rememberSaveable { mutableStateOf<Int?>(null) }
-    val graphBands =
-        bands.map { band ->
-            GraphBand(
-                index = band.index,
-                frequencyHz = band.centerFreqHz.toFloat(),
-                gainDb = settings.bandGainsDb[band.index] ?: 0f,
-                minGainDb = band.minGainDb,
-                maxGainDb = band.maxGainDb,
-            )
-        }
+    val graphBands = curveModel.graphBands
     val processing = settings.masterEnabled && !settings.bypass
     val heavyLimiting = settings.masterEnabled && warningLevel == HeadroomWarningLevel.HEAVY_LIMITING
 
