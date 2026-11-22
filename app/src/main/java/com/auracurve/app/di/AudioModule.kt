@@ -12,9 +12,7 @@ import com.auracurve.app.audio.AudioEngine
 import com.auracurve.app.audio.AudioPlaybackMonitor
 import com.auracurve.app.audio.AudioRouteRepository
 import com.auracurve.app.audio.AudioSessionRepository
-import com.auracurve.app.audio.DumpsysSessionScanner
 import com.auracurve.app.audio.NoOpAudioPlaybackMonitor
-import com.auracurve.app.audio.SessionScanner
 import com.auracurve.app.audio.SystemVolumeRepository
 import com.auracurve.app.auto.AndroidCarConnectionRepository
 import com.auracurve.app.auto.CarConnectionRepository
@@ -65,8 +63,4 @@ abstract class AudioModule {
                 noOpMonitor
             }
     }
-
-    @Binds
-    @Singleton
-    abstract fun bindSessionScanner(impl: DumpsysSessionScanner): SessionScanner
 }

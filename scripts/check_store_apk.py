@@ -36,6 +36,8 @@ DEX_MARKERS = [
 MANIFEST_MARKERS = [
     "android.permission.REQUEST_INSTALL_PACKAGES",
     "android.permission.INTERNET",  # the store build has no online source at all
+    "android.permission.ACCESS_NETWORK_STATE",  # nothing here asks whether a connection exists
+    "android.permission.DUMP",  # privileged; Play does not accept it (sideload build only)
     "SoundCloudLoginActivity",
     "SpotifyLoginActivity",
     "spotify-callback",
