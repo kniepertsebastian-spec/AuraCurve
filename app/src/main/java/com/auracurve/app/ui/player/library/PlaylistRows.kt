@@ -20,7 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,8 +58,9 @@ internal fun PlaylistRow(
     currentTrackId: Long?,
     playedIds: Set<Long>,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    var search by remember { mutableStateOf("") }
+    // Saveable: a rotation or process death keeps the open playlist and its search text.
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var search by rememberSaveable { mutableStateOf("") }
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier =

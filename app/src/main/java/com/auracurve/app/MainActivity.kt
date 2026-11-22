@@ -6,7 +6,9 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,6 +38,13 @@ class MainActivity : ComponentActivity() {
     private val requestNotificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Before super.onCreate and setContent, as the API asks. The app is dark in both system
+        // themes, so both bars use the dark style: light icons, and a scrim in the app's own
+        // colors behind the 3-button navigation bar (gesture navigation stays transparent).
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(ContextCompat.getColor(this, R.color.sonic_graphite)),
+            navigationBarStyle = SystemBarStyle.dark(ContextCompat.getColor(this, R.color.sonic_graphite_raised)),
+        )
         super.onCreate(savedInstanceState)
         requestNotificationPermissionIfNeeded()
         // Only on a fresh start: after a rotation the same intent is delivered again
