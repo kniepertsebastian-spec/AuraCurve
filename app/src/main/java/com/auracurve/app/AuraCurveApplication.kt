@@ -2,7 +2,9 @@ package com.auracurve.app
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.os.StrictMode
 import android.service.quicksettings.TileService
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -15,6 +17,10 @@ import coil3.request.crossfade
 import com.auracurve.app.auto.AppAutoCatalog
 import com.auracurve.app.player.PlayerText
 import com.auracurve.app.player.playback.AutoCatalogHolder
+import com.auracurve.app.player.playback.PlaybackFadeState
+import com.auracurve.app.player.playback.PlayerDspState
+import com.auracurve.app.profile.SharedPreferencesCorrectionSuggestionDismissals
+import com.auracurve.app.profile.SharedPreferencesDeviceAliasStore
 import com.auracurve.app.quick.EqToggleTileService
 import com.auracurve.app.quick.NextPresetTileService
 import com.auracurve.app.quick.QuickControls
@@ -42,6 +48,8 @@ class AuraCurveApplication :
 
     override fun onCreate() {
         super.onCreate()
+        if (BuildConfig.DEBUG) enableStrictMode()
+        warmUpPreferences()
         quickControls.onSurfacesChanged = {
             val context = this
             runCatching {
@@ -87,7 +95,46 @@ class AuraCurveApplication :
         }
     }
 
+    // Debug builds only: report (to the log, never crash) disk and network access on the main
+    // thread and leaked closables, receivers and activities, so they show up while developing.
+    private fun enableStrictMode() {
+        StrictMode.setThreadPolicy(
+            StrictMode.ThreadPolicy
+                .Builder()
+                .detectAll()
+                .penaltyLog()
+                .build(),
+        )
+        StrictMode.setVmPolicy(
+            StrictMode.VmPolicy
+                .Builder()
+                .detectAll()
+                .penaltyLog()
+                .build(),
+        )
+    }
+
+    // SharedPreferences files are read from disk on first use, and the first read blocks until the
+    // file is loaded. The stores below are first used on the main thread (a view model, a service's
+    // onCreate), so their files are loaded here on a background thread, started before anything
+    // asks for them; the later main-thread reads then find them in memory.
+    private fun warmUpPreferences() {
+        Thread(
+            {
+                runCatching {
+                    getSharedPreferences(DEVICE_ALIASES_PREFS, Context.MODE_PRIVATE).all
+                    getSharedPreferences(CORRECTION_DISMISSALS_PREFS, Context.MODE_PRIVATE).all
+                    PlayerDspState.load(this)
+                    PlaybackFadeState.load(this)
+                }
+            },
+            "prefs-warmup",
+        ).start()
+    }
+
     private companion object {
+        const val DEVICE_ALIASES_PREFS = SharedPreferencesDeviceAliasStore.PREFS_NAME
+        const val CORRECTION_DISMISSALS_PREFS = SharedPreferencesCorrectionSuggestionDismissals.PREFS_NAME
         const val TAG = "AuraCurveApplication"
         const val COVER_CACHE_DIR = "covers"
         const val COVER_DISK_CACHE_BYTES = 64L * 1024 * 1024

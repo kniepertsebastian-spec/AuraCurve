@@ -30,11 +30,15 @@ class SharedPreferencesCorrectionSuggestionDismissals
     constructor(
         @param:ApplicationContext context: Context,
     ) : CorrectionSuggestionDismissals {
-        private val prefs = context.getSharedPreferences("correction_suggestion_dismissals", Context.MODE_PRIVATE)
+        private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
         override fun isDismissed(routeId: String): Boolean = prefs.getBoolean(routeId, false)
 
         override fun dismiss(routeId: String) {
             prefs.edit().putBoolean(routeId, true).apply()
+        }
+
+        companion object {
+            const val PREFS_NAME = "correction_suggestion_dismissals"
         }
     }
