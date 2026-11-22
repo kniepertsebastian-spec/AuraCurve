@@ -13,15 +13,6 @@
         android:name="android.permission.INTERNET"
         tools:node="remove" />
 
-    <!--
-      Optional (roadmap 06, P5-2): only ever granted by the user over ADB
-      (adb shell pm grant com.auracurve.app android.permission.DUMP). With it the session list also
-      finds apps that send no audio-session broadcast. Without it nothing changes.
-    -->
-    <uses-permission
-        android:name="android.permission.DUMP"
-        tools:ignore="ProtectedPermissions" />
-
     <!-- Lets the session list show other apps' names (package visibility, Android 11+). -->
     <queries>
         <intent>

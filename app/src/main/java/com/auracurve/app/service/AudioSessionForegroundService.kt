@@ -24,8 +24,6 @@ import com.auracurve.app.audio.SystemVolumeRepository
 import com.auracurve.app.diagnostics.DiagnosticsRecorder
 import com.auracurve.app.eq.EqController
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -34,9 +32,6 @@ import javax.inject.Inject
 private const val TAG = "AudioSessionFgService"
 private const val NOTIFICATION_CHANNEL_ID = "audio_session_listener"
 private const val NOTIFICATION_ID = 1
-
-// How often the optional dumpsys scan looks for sessions while something plays.
-private const val SESSION_SCAN_INTERVAL_MS = 4_000L
 
 // Keeps AudioSessionRepository/AudioRouteRepository listening and reacts to session
 // changes by attaching/detaching AudioEngine for as long as the app process is alive,
@@ -67,9 +62,6 @@ class AudioSessionForegroundService : LifecycleService() {
 
     @Inject
     lateinit var playbackMonitor: com.auracurve.app.audio.AudioPlaybackMonitor
-
-    @Inject
-    lateinit var sessionScanner: com.auracurve.app.audio.SessionScanner
 
     // E-008 stage 2: the equalizer's control logic, process-wide. Created here at the latest, so
     // quick tiles and Android Auto can steer the EQ without the app on screen.
@@ -112,21 +104,6 @@ class AudioSessionForegroundService : LifecycleService() {
         lifecycleScope.launch {
             playbackMonitor.isAnyAppPlaying.collect { isPlaying ->
                 diagnosticsRecorder.record("System-wide audio playback: ${if (isPlaying) "started" else "stopped"}")
-            }
-        }
-
-        // P5-2: apps that never announce their session. Only with the optional DUMP grant, and only
-        // while something plays, so an idle phone is not polled.
-        lifecycleScope.launch {
-            playbackMonitor.isAnyAppPlaying.collectLatest { isPlaying ->
-                if (!isPlaying || !sessionScanner.isAvailable()) {
-                    sessionRepository.updateScannedSessions(emptyList())
-                    return@collectLatest
-                }
-                while (true) {
-                    sessionRepository.updateScannedSessions(sessionScanner.scan())
-                    delay(SESSION_SCAN_INTERVAL_MS)
-                }
             }
         }
 

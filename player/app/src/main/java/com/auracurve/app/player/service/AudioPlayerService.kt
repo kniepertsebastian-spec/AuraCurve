@@ -4,8 +4,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.audiofx.AudioEffect
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -399,7 +397,8 @@ class AudioPlayerService : MediaLibraryService() {
                 val networkCode =
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                         error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
-                handlePlaybackFailure(exoPlayer, PlaybackFailureClassifier.classify(isOnline(), networkCode, error))
+                handlePlaybackFailure(exoPlayer, // The store build has no network permission, so it cannot ask whether a connection exists.
+                    PlaybackFailureClassifier.classify(online = true, networkErrorCode = networkCode, cause = error))
             }
         }
 
@@ -466,13 +465,6 @@ class AudioPlayerService : MediaLibraryService() {
     private fun cancelNetworkRetry() {
         networkRetry?.let(mainHandler::removeCallbacks)
         networkRetry = null
-    }
-
-    private fun isOnline(): Boolean {
-        val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return true
-        val network = manager.activeNetwork ?: return false
-        val capabilities = manager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
     private fun onStreamResolved(

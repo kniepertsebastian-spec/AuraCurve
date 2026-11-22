@@ -52,8 +52,6 @@ dependencies {
 
     // Media3 / ExoPlayer
     implementation(libs.media3.exoplayer)
-    // HLS streams (some streaming services offer tracks only that way).
-    implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.ui)
     // MediaLibraryService: notification, lock screen, Bluetooth, Wear and Android Auto from one session.
     implementation(libs.media3.session)

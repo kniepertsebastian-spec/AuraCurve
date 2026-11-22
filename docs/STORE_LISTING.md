@@ -121,8 +121,8 @@ Musikplayer, Bassverstärkung, präziser Equalizer.
 - [ ] Link to the privacy policy (draft: [`PRIVACY_POLICY_DRAFT.md`](PRIVACY_POLICY_DRAFT.md)) publicly reachable.
 - [ ] Category *Music & Audio*, content rating and target audience filled in.
 - [ ] Upload an Android App Bundle (`./gradlew :app:bundleRelease`), not an APK, signed with the upload key; Play App Signing on.
-- [ ] Foreground services: Play Console › App content › Foreground service permissions. Two services use `mediaPlayback`: the player (plays audio) and `AudioSessionForegroundService` (waits for other apps' audio sessions to attach the equalizer; plays nothing itself). Describe both and add a short video. The second one is the likeliest review question; if it is rejected, `specialUse` with a written reason is the fallback.
+- [ ] Foreground services: Play Console › App content › Foreground service permissions. Two services use `mediaPlayback`: the player (plays audio) and `AudioSessionForegroundService` (waits for other apps' audio sessions to attach the equalizer; plays nothing itself). Describe both and add a short video; the wording, the video script and the fallback are in [`FGS_DECLARATION.md`](FGS_DECLARATION.md).
 - [ ] Android Auto: the manifest declares a media app for cars. Either opt in under Advanced settings › Form factors and pass the Android Auto review (the car browses the playlists on the device), or remove the `com.google.android.gms.car.application` entry before release.
 - [ ] Data safety: "No data collected, no data shared" (see the privacy policy draft); the release APK must not declare `INTERNET` (CI checks the debug APK).
-- [ ] Permissions shown in the store match section 4 of the privacy policy (`DUMP` is optional and only granted over ADB).
+- [ ] Permissions shown in the store match section 4 of the privacy policy (notifications, foreground service for media playback, wake lock; no `INTERNET`, `ACCESS_NETWORK_STATE` or `DUMP`, which `scripts/check_store_apk.py` enforces).
 - [ ] Screenshots and the feature graphic show only this build: no streaming-service names or logos.
