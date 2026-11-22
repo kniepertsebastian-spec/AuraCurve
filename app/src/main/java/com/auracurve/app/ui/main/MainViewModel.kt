@@ -1,6 +1,7 @@
 package com.auracurve.app.ui.main
 
 import androidx.annotation.StringRes
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.auracurve.app.R
@@ -74,6 +75,8 @@ import javax.inject.Inject
 
 private const val FEEDBACK_BUFFER = 8
 
+private const val KEY_SHOW_SOURCE_PICKER = "show_source_picker"
+
 // roadmap-2026.md M5: "extreme boosts are not applied silently but limited
 // or confirmed" - an imported correction curve peaking above this
 // needs an explicit confirmation in the import preview, not just a silent clamp
@@ -128,6 +131,8 @@ class MainViewModel
         private val carConnectionRepository: CarConnectionRepository,
         private val systemDiagnostics: SystemDiagnosticsSource,
         @DefaultDispatcher private val backgroundDispatcher: CoroutineDispatcher,
+        // Process death: the few screen flags worth restoring (see showSourcePicker).
+        private val savedState: SavedStateHandle,
     ) : ViewModel() {
         /**
          * The constructor the tests have always used: builds a private [EqController] on the main
@@ -154,6 +159,7 @@ class MainViewModel
             quickControls: QuickControls = QuickControls(),
             appProfileRepository: AppProfileRepository = NoAppProfileRepository,
             backgroundDispatcher: CoroutineDispatcher,
+            savedState: SavedStateHandle = SavedStateHandle(),
         ) : this(
             controller =
                 EqController(
@@ -185,13 +191,19 @@ class MainViewModel
             carConnectionRepository = carConnectionRepository,
             systemDiagnostics = systemDiagnostics,
             backgroundDispatcher = backgroundDispatcher,
+            savedState = savedState,
         )
 
         private val _showDebugEffects = MutableStateFlow(false)
         val showDebugEffects: StateFlow<Boolean> = _showDebugEffects.asStateFlow()
 
-        private val _showSourcePicker = MutableStateFlow(false)
-        val showSourcePicker: StateFlow<Boolean> = _showSourcePicker.asStateFlow()
+        // "Which player do you want to start?" dialog. Kept in the SavedStateHandle so a dialog that
+        // was open when Android killed the process in the background is still open on return.
+        val showSourcePicker: StateFlow<Boolean> = savedState.getStateFlow(KEY_SHOW_SOURCE_PICKER, false)
+
+        private fun setShowSourcePicker(show: Boolean) {
+            savedState[KEY_SHOW_SOURCE_PICKER] = show
+        }
 
         private val _effectDescriptors = MutableStateFlow<List<AudioEffectDescriptor>>(emptyList())
         val effectDescriptors: StateFlow<List<AudioEffectDescriptor>> = _effectDescriptors.asStateFlow()
@@ -562,10 +574,10 @@ class MainViewModel
                 // in Listening, see docs/STATE_MACHINE.md).
                 val hasNoSession = engineState.value.let { it is AudioEngineState.Detached || it is AudioEngineState.Listening }
                 if (hasNoSession) {
-                    _showSourcePicker.value = true
+                    setShowSourcePicker(true)
                 }
             } else {
-                _showSourcePicker.value = false
+                setShowSourcePicker(false)
             }
         }
 
@@ -574,13 +586,13 @@ class MainViewModel
         val lastPlayerSource: StateFlow<PlayerSource?> = _lastPlayerSource
 
         fun choosePlayerSource(source: PlayerSource) {
-            _showSourcePicker.value = false
+            setShowSourcePicker(false)
             _lastPlayerSource.value = source
             playerBridge.launchPlayer(source)
         }
 
         fun dismissSourcePicker() {
-            _showSourcePicker.value = false
+            setShowSourcePicker(false)
         }
 
         // Backs the "Try again" button shown when engineState is Error
@@ -597,7 +609,7 @@ class MainViewModel
         // needed disabling the master bar and re-enabling it just to see the dialog
         // again.
         fun openSourcePicker() {
-            _showSourcePicker.value = true
+            setShowSourcePicker(true)
         }
 
         fun reopenPlayer() {

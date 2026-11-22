@@ -118,6 +118,7 @@ Musikplayer, Bassverstärkung, präziser Equalizer.
 ## Check before submitting
 
 - [ ] Every feature in the text seen on a device in this build (especially "profile per output", "sound per app", Android Auto, AutoEQ import).
+- [x] Languages (decision): the app stays English-only (`localeFilters += "en"`, 396 English strings, no `values-de`). Adding `de` would only bundle library translations without translating the app. The German listing and privacy text are store copy for German users and say nothing about a German interface. Revisit when the app itself is translated.
 - [ ] Link to the privacy policy (draft: [`PRIVACY_POLICY_DRAFT.md`](PRIVACY_POLICY_DRAFT.md)) publicly reachable.
 - [ ] Category *Music & Audio*, content rating and target audience filled in.
 - [ ] Upload an Android App Bundle (`./gradlew :app:bundleRelease`), not an APK, signed with the upload key; Play App Signing on.

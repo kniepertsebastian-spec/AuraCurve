@@ -54,7 +54,7 @@ fun PlayerScreen(
     // What the playlist dialog is for: null = closed; a track = add it to a playlist;
     // no track = just make a new, empty playlist.
     var playlistDialog by remember { mutableStateOf<PlaylistDialogRequest?>(null) }
-    var mergeDialogOpen by remember { mutableStateOf(false) }
+    val mergeDialogOpen by viewModel.mergeDialogOpen.collectAsStateWithLifecycle()
 
     // The screen draws edge to edge: keep its content clear of the status and
     // navigation bars. And outside a Card the default text color is near-black, which
@@ -81,9 +81,9 @@ fun PlayerScreen(
             playlists = playlists,
             onMerge = { chosen, name ->
                 viewModel.mergePlaylists(chosen, name)
-                mergeDialogOpen = false
+                viewModel.setMergeDialogOpen(false)
             },
-            onDismiss = { mergeDialogOpen = false },
+            onDismiss = { viewModel.setMergeDialogOpen(false) },
         )
     }
     CompositionLocalProvider(LocalContentColor provides SonicPaper) {
@@ -117,7 +117,7 @@ fun PlayerScreen(
                 currentTrackId = currentTrackId,
                 playedIds = playedIds,
                 onNewPlaylist = { playlistDialog = PlaylistDialogRequest(null) },
-                onMerge = { mergeDialogOpen = true },
+                onMerge = { viewModel.setMergeDialogOpen(true) },
             )
         }
     }

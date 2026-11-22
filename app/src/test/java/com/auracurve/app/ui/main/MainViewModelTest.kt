@@ -1,5 +1,6 @@
 package com.auracurve.app.ui.main
 
+import androidx.lifecycle.SavedStateHandle
 import com.auracurve.app.BuildConfig
 import com.auracurve.app.R
 import com.auracurve.app.audio.AudioCapabilities
@@ -233,6 +234,30 @@ class MainViewModelTest {
             viewModel.setMasterEnabled(true)
 
             assertFalse(viewModel.showSourcePicker.value)
+        }
+
+    @Test
+    fun `an open source picker is still open after process death`() =
+        runTest {
+            val handle = SavedStateHandle()
+            createViewModel(emptyList(), savedState = handle).setMasterEnabled(true)
+
+            val restored = createViewModel(emptyList(), savedState = afterProcessDeath(handle))
+
+            assertTrue(restored.showSourcePicker.value)
+        }
+
+    @Test
+    fun `a dismissed source picker stays closed after process death`() =
+        runTest {
+            val handle = SavedStateHandle()
+            val viewModel = createViewModel(emptyList(), savedState = handle)
+            viewModel.setMasterEnabled(true)
+            viewModel.dismissSourcePicker()
+
+            val restored = createViewModel(emptyList(), savedState = afterProcessDeath(handle))
+
+            assertFalse(restored.showSourcePicker.value)
         }
 
     @Test
@@ -2278,6 +2303,7 @@ class MainViewModelTest {
         carConnectionRepository: FakeCarConnectionRepository = FakeCarConnectionRepository(),
         appProfileRepository: AppProfileRepository = FakeAppProfileRepository(),
         suggestionDismissals: CorrectionSuggestionDismissals = InMemoryCorrectionSuggestionDismissals(),
+        savedState: SavedStateHandle = SavedStateHandle(),
     ): MainViewModel =
         MainViewModel(
             repository = FakeAudioEffectRepository(descriptors),
@@ -2296,7 +2322,13 @@ class MainViewModelTest {
             appProfileRepository = appProfileRepository,
             suggestionDismissals = suggestionDismissals,
             backgroundDispatcher = dispatcher,
+            savedState = savedState,
         )
+
+    // What the system does on process death: the handle's values go into a Bundle and come back
+    // in a new handle for the new view model.
+    private fun afterProcessDeath(handle: SavedStateHandle): SavedStateHandle =
+        SavedStateHandle(handle.keys().associateWith { handle.get<Any>(it) })
 
     private fun fakeDescriptor(name: String) =
         AudioEffectDescriptor(
