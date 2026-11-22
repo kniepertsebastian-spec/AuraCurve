@@ -50,13 +50,15 @@ android {
 
     buildTypes {
         release {
-            // Roadmap 06, P6-6: R8 (isMinifyEnabled + isShrinkResources) was tried and switched off again:
-            // the signed release APK (about 7 MB) did not start on a device. Most likely that was not
-            // R8 at all: 1.1.2-beta.7 and beta.8 were built without it and did not start either. The
-            // cause was a NullPointerException in MainViewModel's init (state declared below the init
-            // block), fixed since. proguard-rules.pro is kept for the next attempt; turn minification
-            // back on only together with a device test.
-            isMinifyEnabled = false
+            // AuraCurve roadmap 01, step 3: R8 shrinks, optimizes and obfuscates the store build and
+            // drops unused resources. An earlier attempt (roadmap 06, P6-6) was switched off because
+            // the release APK did not start; the cause turned out to be a NullPointerException in
+            // MainViewModel's init, not R8 (builds without R8 failed the same way), fixed since.
+            // Keep rules: proguard-rules.pro. R8's mapping.txt is attached to every release by
+            // .github/workflows/release.yml (stack traces from the Play Console are deobfuscated
+            // with it); before a store upload the signed bundle is still checked on a device.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             if (hasReleaseSigning) signingConfig = signingConfigs.getByName("hardbassRelease")
         }

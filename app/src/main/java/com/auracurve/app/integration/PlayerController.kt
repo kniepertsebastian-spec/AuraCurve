@@ -11,6 +11,7 @@ import com.auracurve.app.player.playback.QueueRequest
 import com.auracurve.app.player.playback.QueueRequests
 import com.auracurve.app.player.playback.RepeatSetting
 import com.auracurve.app.player.service.AudioPlayerService
+import com.auracurve.app.player.service.PlayerCommands
 import com.auracurve.app.playlist.QueuePositions
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.StateFlow
@@ -153,17 +154,11 @@ class AndroidPlayerController
         private fun trySend(
             action: String,
             configure: Intent.() -> Unit = {},
-        ): Boolean {
-            val intent =
-                Intent(context, AudioPlayerService::class.java).apply {
-                    this.action = action
-                    configure()
-                }
-            return PlayerServiceStart.start(
-                start = { context.startService(intent) },
+        ): Boolean =
+            PlayerServiceStart.start(
+                start = { PlayerCommands.send(context, action, configure) },
                 onRefused = { Log.w(TAG, "Player command $action dropped: app in background, service not running") },
             )
-        }
 
         private companion object {
             const val TAG = "PlayerController"

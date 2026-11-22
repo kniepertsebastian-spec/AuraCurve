@@ -7,6 +7,7 @@ import com.auracurve.app.playback.SleepTimerStatus
 import com.auracurve.app.player.playback.PlaybackFadeState
 import com.auracurve.app.player.playback.SleepTimerState
 import com.auracurve.app.player.service.AudioPlayerService
+import com.auracurve.app.player.service.PlayerCommands
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -59,12 +60,5 @@ class AndroidPlaybackTimers
         private fun send(
             action: String,
             configure: Intent.() -> Unit = {},
-        ) {
-            context.startService(
-                Intent(context, AudioPlayerService::class.java).apply {
-                    this.action = action
-                    configure()
-                },
-            )
-        }
+        ) = PlayerCommands.send(context, action, configure)
     }
