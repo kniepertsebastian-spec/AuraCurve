@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark window from the first frame, so the app does not flash white before Compose draws. -->
+    <!--
+      Dark window from the first frame, so the app does not flash white before Compose draws.
+      No status/navigation bar colors here: from API 35 the window draws edge to edge and ignores
+      them; MainActivity calls enableEdgeToEdge with the bar styles instead.
+    -->
     <style name="Theme.AuraCurve" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/sonic_graphite</item>
-        <item name="android:statusBarColor">@color/sonic_graphite</item>
-        <item name="android:navigationBarColor">@color/sonic_graphite_raised</item>
     </style>
 </resources>

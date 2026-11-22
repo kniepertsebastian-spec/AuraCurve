@@ -121,6 +121,7 @@ Musikplayer, Bassverstärkung, präziser Equalizer.
 - [ ] Link to the privacy policy (draft: [`PRIVACY_POLICY_DRAFT.md`](PRIVACY_POLICY_DRAFT.md)) publicly reachable.
 - [ ] Category *Music & Audio*, content rating and target audience filled in.
 - [ ] Upload an Android App Bundle (`./gradlew :app:bundleRelease`), not an APK, signed with the upload key; Play App Signing on.
+- [x] Languages (decision): the app stays English-only (`localeFilters += "en"`, 396 English strings, no `values-de`). Adding `de` would only bundle library translations without translating the app. The German listing and privacy text are store copy for German users and say nothing about a German interface. Revisit when the app itself is translated.
 - [ ] Foreground services: Play Console › App content › Foreground service permissions. Two services use `mediaPlayback`: the player (plays audio) and `AudioSessionForegroundService` (waits for other apps' audio sessions to attach the equalizer; plays nothing itself). Describe both and add a short video; the wording, the video script and the fallback are in [`FGS_DECLARATION.md`](FGS_DECLARATION.md).
 - [ ] Android Auto: the manifest declares a media app for cars. Either opt in under Advanced settings › Form factors and pass the Android Auto review (the car browses the playlists on the device), or remove the `com.google.android.gms.car.application` entry before release.
 - [ ] Data safety: "No data collected, no data shared" (see the privacy policy draft); the release APK must not declare `INTERNET` (CI checks the debug APK).

@@ -1,5 +1,6 @@
 package com.auracurve.app.ui.player
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.auracurve.app.R
@@ -34,6 +35,8 @@ data class ImportUiState(
     val isError: Boolean = false,
 )
 
+private const val KEY_MERGE_DIALOG_OPEN = "merge_dialog_open"
+
 @HiltViewModel
 class PlayerViewModel
     @Inject
@@ -42,6 +45,8 @@ class PlayerViewModel
         private val playlistRepository: PlaylistRepository,
         private val texts: TextProvider,
         private val localTracks: LocalTrackReader = NoLocalTrackReader,
+        // Process death: the "merge playlists" dialog stays open (see mergeDialogOpen).
+        private val savedState: SavedStateHandle = SavedStateHandle(),
     ) : ViewModel() {
         val nowPlaying: StateFlow<NowPlaying?> = controller.nowPlaying
         val queue: StateFlow<List<TrackItem>> = controller.queue
@@ -54,6 +59,14 @@ class PlayerViewModel
             playlistRepository.playlists
                 .map { list -> list.sortedByDescending { it.createdAtMs } }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+        // The "merge playlists" dialog. Its choices live in the dialog; only that it is open survives
+        // the process being killed in the background.
+        val mergeDialogOpen: StateFlow<Boolean> = savedState.getStateFlow(KEY_MERGE_DIALOG_OPEN, false)
+
+        fun setMergeDialogOpen(open: Boolean) {
+            savedState[KEY_MERGE_DIALOG_OPEN] = open
+        }
 
         private val _importState = MutableStateFlow(ImportUiState())
         val importState: StateFlow<ImportUiState> = _importState.asStateFlow()
