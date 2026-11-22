@@ -17,7 +17,7 @@ import coil3.request.crossfade
 import com.auracurve.app.auto.AppAutoCatalog
 import com.auracurve.app.player.PlayerText
 import com.auracurve.app.player.playback.AutoCatalogHolder
-import com.auracurve.app.player.playback.PlaybackTimerState
+import com.auracurve.app.player.playback.PlaybackFadeState
 import com.auracurve.app.player.playback.PlayerDspState
 import com.auracurve.app.profile.SharedPreferencesCorrectionSuggestionDismissals
 import com.auracurve.app.profile.SharedPreferencesDeviceAliasStore
@@ -125,7 +125,7 @@ class AuraCurveApplication :
                     getSharedPreferences(DEVICE_ALIASES_PREFS, Context.MODE_PRIVATE).all
                     getSharedPreferences(CORRECTION_DISMISSALS_PREFS, Context.MODE_PRIVATE).all
                     PlayerDspState.load(this)
-                    PlaybackTimerState.load(this)
+                    PlaybackFadeState.load(this)
                 }
             },
             "prefs-warmup",
