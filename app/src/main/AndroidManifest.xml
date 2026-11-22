@@ -22,6 +22,7 @@
         tools:node="remove" />
     <uses-permission
         android:name="android.permission.DUMP"
+        tools:ignore="ProtectedPermissions"
         tools:node="remove" />
 
     <!-- Lets the session list show other apps' names (package visibility, Android 11+). -->
@@ -50,6 +51,7 @@
         -->
         <receiver
             android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            tools:ignore="MissingClass"
             tools:node="remove" />
 
         <!--
