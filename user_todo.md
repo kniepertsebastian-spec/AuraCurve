@@ -31,8 +31,7 @@ z. B. gefiltert mit `adb logcat | grep -E "StrictMode|hiddenapi|Accessing hidden
 - [ ] Instrumentierten Test ausführen: `./gradlew :app:connectedDebugAndroidTest`
       (enthält `EngineAttachToSessionTest`).
 
-## 3. CI prüfen
+## 3. CI
 
-- [ ] In der Cloud-Session gibt es kein Android SDK (und `dl.google.com` ist gesperrt), der Code wurde
-      daher hier nicht kompiliert. Bitte den CI-Lauf des PRs prüfen (ktlint, Build, Unit-Tests inkl.
-      `SessionIdleShutdownTest` und dem neuen `MediaPlaybackActiveTest`, Lint).
+- [x] CI-Lauf grün (ktlint, Build, Unit-Tests inkl. `SessionIdleShutdownTest` und `MediaPlaybackActiveTest`,
+      Lint) auf beiden PRs. Lokal wurde in der Cloud-Session nicht gebaut (kein Android SDK).
