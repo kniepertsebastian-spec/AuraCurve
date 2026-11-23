@@ -131,7 +131,7 @@ applied again) is described in `docs/adr/0001-kotlin-ksp-with-agp9.md`.
 ## Package name
 
 The application ID and namespace are set once in `gradle.properties`
-(`hardbasseq.applicationId`, `hardbasseq.namespace`) and read by `app/build.gradle.kts`. The
+(`auracurve.applicationId`, `auracurve.namespace`) and read by `app/build.gradle.kts`. The
 display name (`app_name`) is in `app/src/main/res/values/strings.xml`.
 
 ## CI

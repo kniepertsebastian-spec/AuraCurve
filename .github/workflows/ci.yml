@@ -34,7 +34,7 @@ jobs:
       - name: Print ktlint violations
         if: failure()
         run: |
-          find app/build/reports/ktlint core/build/reports/ktlint \
+          find app/build/reports/ktlint core/build/reports/ktlint player/app/build/reports/ktlint \
             -name '*.txt' -exec echo "--- {} ---" \; -exec cat {} \; 2>/dev/null || true
 
       - name: Upload ktlint reports
@@ -45,6 +45,7 @@ jobs:
           path: |
             app/build/reports/ktlint
             core/build/reports/ktlint
+            player/app/build/reports/ktlint
           if-no-files-found: warn
 
       - name: Assemble debug APK
@@ -74,9 +75,10 @@ jobs:
 
       # Roadmap 06, P6-3: the instrumented tests need a device and are not run here, but they must
       # at least keep compiling. The release build (R8, P6-6) is built too, so a missing keep rule
-      # that makes shrinking fail shows up before a release tag does.
+      # that makes shrinking fail shows up before a release tag does. The CI has no signing key, so
+      # the unsigned release build is asked for explicitly (without the flag it fails on purpose).
       - name: Compile instrumented tests and build the release APK
-        run: ./gradlew :app:compileDebugAndroidTestKotlin :app:assembleRelease --stacktrace
+        run: ./gradlew :app:compileDebugAndroidTestKotlin :app:assembleRelease -Pauracurve.allowUnsignedRelease=true --stacktrace
 
       - name: Run Android Lint
         run: ./gradlew lintDebug lintRelease --stacktrace
@@ -86,7 +88,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: android-lint-reports
-          path: app/build/reports/lint-results-*
+          path: |
+            app/build/reports/lint-results-*
+            player/app/build/reports/lint-results-*
           if-no-files-found: warn
 
       - name: Upload debug APK

@@ -56,7 +56,11 @@ object TrackMediaItems {
             artist = metadata.artist?.toString().orEmpty(),
             artworkUrl = metadata.extras?.getString(EXTRA_ARTWORK_URL),
             // A file on the device keeps its address, so it can still be saved in a playlist.
-            streamUrl = item.localConfiguration?.uri?.toString()?.takeIf { LocalTrackId.isLocal(id) },
+            streamUrl =
+                item.localConfiguration
+                    ?.uri
+                    ?.toString()
+                    ?.takeIf { LocalTrackId.isLocal(id) },
             durationMs = metadata.durationMs ?: 0L,
         )
     }

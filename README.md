@@ -49,7 +49,13 @@ Check that the APK contains no online-access code and no internet permission (CI
 python3 scripts/check_store_apk.py app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Release signing reads `hardbasseq.releaseStoreFile`, `hardbasseq.releaseStorePassword`, `hardbasseq.releaseKeyAlias` and `hardbasseq.releaseKeyPassword` as Gradle properties (see `app/build.gradle.kts`).
+Release signing reads the environment variables `AURACURVE_RELEASE_STORE_FILE`, `AURACURVE_RELEASE_STORE_PASSWORD`, `AURACURVE_RELEASE_KEY_ALIAS` and `AURACURVE_RELEASE_KEY_PASSWORD` (see `app/build.gradle.kts`), never command-line arguments. Without them, `assembleRelease` and `bundleRelease` fail; for an unsigned build that is never uploaded (e.g. to check R8 shrinking) pass `-Pauracurve.allowUnsignedRelease=true`:
+
+```bash
+./gradlew :app:assembleRelease -Pauracurve.allowUnsignedRelease=true
+```
+
+Keystores (`*.jks`, `*.keystore`, `*.p12`), `keystore.properties` and `.env` are ignored by git.
 
 ## Documentation
 

@@ -148,3 +148,60 @@ Das Verhalten soll unverändert sein (die Golden-Tests decken die Logik ab); auf
       `EqController.kt`, `MainViewModel.kt` oder `EqualizerScreen.kt` ändert, gibt es dort Konflikte:
       diese Dateien wurden hier stark umgebaut (Logik liegt jetzt in den Koordinatoren unter `eq/`
       bzw. den Sektionsdateien unter `ui/equalizer/`, siehe `docs/ARCHITECTURE.md`).
+
+---
+
+## Teil-Roadmap 4 (Build-System, `:player`-Modul, CI/CD & Signing)
+
+Der Code-Teil der Roadmap ist umgesetzt (PR auf `claude/trusting-mccarthy-jxiai5`). In der Cloud-Session
+liefen lokal: `ktlintCheck` (jetzt auch `:player`), `lintDebug`, `lintRelease`, alle Unit-Tests, `:core:test`,
+`:app:bundleRelease`/`:app:assembleRelease` mit einem Wegwerf-Keystore und `check_store_apk.py`.
+Diese Punkte brauchen die GitHub-Oberfläche, deinen echten Upload-Key oder ein Gerät.
+
+### 1. Neue GitHub-Secrets anlegen (M-7)
+
+Store- und Key-Passwort sind jetzt zwei getrennte Secrets und erreichen Gradle nur noch als
+Umgebungsvariablen. Unter *Settings › Secrets and variables › Actions* anlegen:
+
+- [ ] `AURACURVE_RELEASE_KEYSTORE_BASE64` – derselbe Inhalt wie das alte `HARDBASS_RELEASE_KEYSTORE_BASE64`
+      (aus deiner Keystore-Datei: `base64 -w0 dein-upload-key.jks`; GitHub zeigt alte Secrets nicht mehr an).
+- [ ] `AURACURVE_RELEASE_STORE_PASSWORD` – Passwort des Keystores.
+- [ ] `AURACURVE_RELEASE_KEY_PASSWORD` – Passwort des Schlüssels `hardbasseq` im Keystore (bei einem
+      PKCS12-Keystore identisch mit dem Store-Passwort).
+- [ ] Danach `HARDBASS_RELEASE_KEYSTORE_BASE64` und `HARDBASS_RELEASE_PASSWORD` löschen und den
+      Übergangs-Fallback (`|| secrets.HARDBASS_…`) aus `.github/workflows/release.yml` entfernen
+      (oder mir Bescheid geben). Bis dahin funktioniert der Release-Workflow mit den alten Secrets weiter.
+- [ ] Beim nächsten Release im Log von „Build signed AAB and APK“ prüfen: im `./gradlew`-Aufruf stehen
+      nur noch `-Pauracurve.versionCode`/`-Pauracurve.versionName`, keine Passwörter.
+
+### 2. Lokale Release-Builds
+
+`assembleRelease`/`bundleRelease` brechen jetzt ab, wenn kein Signing konfiguriert ist (statt still eine
+unsignierte APK zu bauen). Lokal signiert bauen:
+
+```bash
+export AURACURVE_RELEASE_STORE_FILE=/pfad/zu/upload-key.jks
+export AURACURVE_RELEASE_STORE_PASSWORD=…
+export AURACURVE_RELEASE_KEY_ALIAS=hardbasseq
+export AURACURVE_RELEASE_KEY_PASSWORD=…
+./gradlew :app:bundleRelease
+```
+
+Unsigniert (nur zum Prüfen von R8, nie hochladen): `./gradlew :app:assembleRelease -Pauracurve.allowUnsignedRelease=true`.
+Falls du die Variablen in einer `.env` oder `keystore.properties` ablegst: beide sind jetzt in `.gitignore`.
+
+### 3. CI
+
+- [ ] CI-Lauf auf dem PR grün (ktlint inkl. `:player`, Build, Unit-Tests, `check_store_apk.py`,
+      Release-Build mit `-Pauracurve.allowUnsignedRelease=true`, Lint).
+
+### 4. Release-Build auf einem Gerät (R8-Regel eingeschränkt, m-4)
+
+Die Keep-Regel für `com.auracurve.app.data.**` hält jetzt nur noch die Room-Entities statt des ganzen
+Pakets. Einmal den signierten Release-Build installieren und prüfen:
+
+- [ ] App startet; vorhandene eigene Presets, Geräte- und App-Profile sowie Korrekturprofile sind da
+      (Datenbank `hardbasseq.db` unverändert).
+- [ ] Ein Preset speichern, umbenennen, löschen; ein Geräteprofil anlegen – kein Absturz in `adb logcat`.
+- [ ] Player: lokale Datei abspielen, Benachrichtigung/Sperrbildschirm zeigen Titel und Steuerung
+      (`:player` hat jetzt `minSdk 28` und keine XML-View-Bibliotheken mehr).
