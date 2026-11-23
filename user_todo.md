@@ -192,8 +192,8 @@ Falls du die Variablen in einer `.env` oder `keystore.properties` ablegst: beide
 
 ### 3. CI
 
-- [ ] CI-Lauf auf dem PR grün (ktlint inkl. `:player`, Build, Unit-Tests, `check_store_apk.py`,
-      Release-Build mit `-Pauracurve.allowUnsignedRelease=true`, Lint).
+- [x] CI-Lauf auf dem PR grün (ktlint inkl. `:player`, Build, Unit-Tests, `check_store_apk.py`,
+      Release-Build mit `-Pauracurve.allowUnsignedRelease=true`, Lint) – PR #15.
 
 ### 4. Release-Build auf einem Gerät (R8-Regel eingeschränkt, m-4)
 
