@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -70,6 +71,17 @@ class PlayerViewModel
 
         private val _importState = MutableStateFlow(ImportUiState())
         val importState: StateFlow<ImportUiState> = _importState.asStateFlow()
+
+        init {
+            // Roadmap 2, M-4: tracks of a restored playlist that this phone cannot open were taken
+            // out when the playlists were read; say so once instead of leaving them to fail silently.
+            viewModelScope.launch {
+                playlistRepository.removedUnreadableTracks.filter { it > 0 }.collect { count ->
+                    _importState.value = ImportUiState(message = texts.get(R.string.playlists_unreadable_removed, count))
+                    playlistRepository.acknowledgeRemovedTracks()
+                }
+            }
+        }
 
         // Set when the playback notification was tapped, so the UI can bring the player screen
         // forward; cleared by consumeShowPlayerRequest().

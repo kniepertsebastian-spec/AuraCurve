@@ -58,6 +58,8 @@ dependencies {
 
     // Async
     implementation(libs.kotlinx.coroutines.android)
+    // The player's remembered settings (PlayerDspState, PlaybackFadeState), off the main thread.
+    implementation(libs.datastore.preferences)
 
     testImplementation(libs.junit)
     // Android ships org.json; the JVM unit tests run against stubs, so they need a real one.

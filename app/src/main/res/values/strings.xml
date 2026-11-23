@@ -202,6 +202,7 @@
     <string name="local_files_button">Play files from this device</string>
     <string name="local_files_unreadable">None of the selected files could be read as audio</string>
     <string name="local_files_some_skipped">%1$d files could not be read and were skipped</string>
+    <string name="playlists_unreadable_removed">%1$d tracks were taken out of your playlists: this phone has no access to those files (for example after restoring a backup). Add the files again to play them.</string>
     <string name="share_correction_profile">Share correction profile</string>
     <string name="diagnostics_button">About &amp; diagnostics</string>
     <string name="source_picker_title">Play from...</string>
