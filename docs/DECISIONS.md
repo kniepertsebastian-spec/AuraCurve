@@ -16,7 +16,8 @@ WorkManager are no longer dependencies.
 
 **Kept, generic:** the player's `StreamResolver` seam and network-retry handling in
 `AudioPlayerService`. In this build every track is a file on the device, so neither is reached;
-removing them is a separate, tested step.
+removing them is a separate, tested step. Until then the seam's lookups run on a bounded pool of
+two threads that end when idle (Teil-Roadmap 4, M-7), not on an unbounded cached pool.
 
 **Guard:** `scripts/check_store_apk.py` runs in CI and fails if the APK declares the `INTERNET`
 permission or contains SoundCloud/Spotify addresses, Spotify/YouTube link resolution, a

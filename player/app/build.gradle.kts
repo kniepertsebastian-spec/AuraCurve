@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ktlint)
 }
 
 android {
@@ -10,9 +11,8 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        minSdk = 24
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Same as :app, which is the only consumer of this module.
+        minSdk = 28
     }
 
     buildTypes {
@@ -41,18 +41,21 @@ kotlin {
     }
 }
 
+ktlint {
+    // Same style as :app.
+    android.set(true)
+}
+
 dependencies {
     // Pure-Kotlin DSP (BassExciterPcm16) used by the virtual-bass audio processor.
     implementation(project(":core"))
 
-    implementation(libs.core.ktx.player)
-    implementation(libs.appcompat)
-    implementation(libs.material)
-    implementation(libs.constraintlayout)
+    // The player's screens are Compose and live in :app; this module has no XML views, so no
+    // appcompat, material, constraintlayout or media3-ui (Teil-Roadmap 4, M-6).
+    implementation(libs.core.ktx)
 
     // Media3 / ExoPlayer
     implementation(libs.media3.exoplayer)
-    implementation(libs.media3.ui)
     // MediaLibraryService: notification, lock screen, Bluetooth, Wear and Android Auto from one session.
     implementation(libs.media3.session)
 
@@ -71,6 +74,4 @@ dependencies {
     testImplementation(libs.media3.test.utils.robolectric)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.espresso.core)
 }

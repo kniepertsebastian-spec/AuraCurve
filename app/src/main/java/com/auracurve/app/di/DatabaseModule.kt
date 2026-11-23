@@ -28,6 +28,8 @@ object DatabaseModule {
             .databaseBuilder(
                 context,
                 AppDatabase::class.java,
+                // The old HardBass EQ file name on purpose: renaming it would leave existing users
+                // with an empty database (Teil-Roadmap 4, m-5). Do not change.
                 "hardbasseq.db",
             ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             // Only guards against a future downgrade (newer DB opened by an older

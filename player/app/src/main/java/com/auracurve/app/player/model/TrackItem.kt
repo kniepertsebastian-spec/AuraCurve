@@ -18,5 +18,5 @@ data class TrackItem(
     // What the uploader set as genre ("" if none) and the raw tag list (space separated,
     // multi-word tags in quotes).
     val genre: String = "",
-    val tagList: String = ""
+    val tagList: String = "",
 )

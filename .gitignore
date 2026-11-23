@@ -9,3 +9,11 @@ captures/
 .cxx/
 *.apk
 *.aab
+
+# Signing keys and secrets: never committed. The release key lives only in the GitHub Actions
+# secrets (see .github/workflows/release.yml) and in the owner's own backup.
+*.jks
+*.keystore
+*.p12
+keystore.properties
+.env

@@ -10,24 +10,32 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
-val releaseStoreFile = providers.gradleProperty("hardbasseq.releaseStoreFile").orNull
-val releaseStorePassword = providers.gradleProperty("hardbasseq.releaseStorePassword").orNull
-val releaseKeyAlias = providers.gradleProperty("hardbasseq.releaseKeyAlias").orNull
-val releaseKeyPassword = providers.gradleProperty("hardbasseq.releaseKeyPassword").orNull
+// Teil-Roadmap 4, M-7: the release key's location and passwords come from environment variables,
+// never from -P arguments (those end up in the process list and in CI logs). Locally, export them
+// in the shell (or keep them in an ignored .env / keystore.properties file and source that).
+val releaseStoreFile = providers.environmentVariable("AURACURVE_RELEASE_STORE_FILE").orNull
+val releaseStorePassword = providers.environmentVariable("AURACURVE_RELEASE_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("AURACURVE_RELEASE_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("AURACURVE_RELEASE_KEY_PASSWORD").orNull
 val hasReleaseSigning =
     listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
 
+// An unsigned release APK/AAB is only useful to check that R8 shrinking works (the CI does that);
+// it must be asked for explicitly, so a release build never silently comes out unsigned.
+val allowUnsignedRelease =
+    providers.gradleProperty("auracurve.allowUnsignedRelease").map(String::toBoolean).getOrElse(false)
+
 android {
     // Roadmap M1: single source of truth is gradle.properties, not this file.
-    namespace = providers.gradleProperty("hardbasseq.namespace").get()
+    namespace = providers.gradleProperty("auracurve.namespace").get()
     compileSdk = 37
 
     defaultConfig {
-        applicationId = providers.gradleProperty("hardbasseq.applicationId").get()
+        applicationId = providers.gradleProperty("auracurve.applicationId").get()
         minSdk = 28
         targetSdk = 36
-        versionCode = providers.gradleProperty("hardbasseq.versionCode").map(String::toInt).getOrElse(1)
-        versionName = providers.gradleProperty("hardbasseq.versionName").getOrElse("0.2.0-m1")
+        versionCode = providers.gradleProperty("auracurve.versionCode").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("auracurve.versionName").getOrElse("0.2.0-m1")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,7 +47,7 @@ android {
 
     signingConfigs {
         if (hasReleaseSigning) {
-            create("hardbassRelease") {
+            create("auracurveRelease") {
                 storeFile = file(requireNotNull(releaseStoreFile))
                 storePassword = releaseStorePassword
                 keyAlias = releaseKeyAlias
@@ -60,7 +68,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("hardbassRelease")
+            if (hasReleaseSigning) signingConfig = signingConfigs.getByName("auracurveRelease")
         }
     }
 
@@ -93,6 +101,32 @@ android {
         compose = true
         buildConfig = true
     }
+}
+
+// Fails assembleRelease/bundleRelease (and anything that includes them, such as `build`) before
+// any packaging when the signing variables are missing. Lint and unit tests of the release variant
+// do not need the key and are not affected.
+val requireReleaseSigning =
+    tasks.register("requireReleaseSigning") {
+        description = "Fails the release build when the AURACURVE_RELEASE_* signing variables are missing."
+        val signed = hasReleaseSigning
+        val unsignedAllowed = allowUnsignedRelease
+        doLast {
+            if (!signed && !unsignedAllowed) {
+                throw GradleException(
+                    "Release signing is not configured: set AURACURVE_RELEASE_STORE_FILE, " +
+                        "AURACURVE_RELEASE_STORE_PASSWORD, AURACURVE_RELEASE_KEY_ALIAS and " +
+                        "AURACURVE_RELEASE_KEY_PASSWORD, or pass -Pauracurve.allowUnsignedRelease=true " +
+                        "for an unsigned build that is never uploaded.",
+                )
+            }
+        }
+    }
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    dependsOn(requireReleaseSigning)
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    mustRunAfter(requireReleaseSigning)
 }
 
 kotlin {

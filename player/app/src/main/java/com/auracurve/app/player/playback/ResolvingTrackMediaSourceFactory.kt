@@ -19,7 +19,9 @@ import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 import com.auracurve.app.playlist.QueueMediaId
 import java.io.IOException
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 /**
  * Builds the sources for the play queue. A queue entry only names its track (see
@@ -35,15 +37,18 @@ import java.util.concurrent.Executors
  * default), so a long queue does not look up every track at once.
  *
  * @param onResolved told on the main thread which stream a track got (preview or full length)
- * @param lookups where lookups run; they block on the network, so their own threads and never
- *   ExoPlayer's playback thread. Tests pass one that runs them at once, in step with the fake clock.
+ * @param lookups where lookups run; they may block (on the network, for a streaming source), so
+ *   their own threads and never ExoPlayer's playback thread. At most [MAX_LOOKUP_THREADS] run at
+ *   once - with lazy preparation only the playing and the next entry are looked up, so more threads
+ *   would only pile up behind a slow resolver. Tests pass one that runs them at once, in step with
+ *   the fake clock.
  */
 @OptIn(UnstableApi::class)
 class ResolvingTrackMediaSourceFactory(
     private val delegate: MediaSource.Factory,
     private val resolver: StreamResolver,
     private val onResolved: (trackId: Long, stream: ResolvedStream) -> Unit,
-    private val lookups: ExecutorService = Executors.newCachedThreadPool(),
+    private val lookups: ExecutorService = boundedLookupExecutor(),
 ) : MediaSource.Factory {
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -116,10 +121,11 @@ class ResolvingTrackMediaSourceFactory(
             result: Result<ResolvedStream>,
         ) {
             if (fromPreparation != preparation || playbackHandler == null) return
-            val resolved = result.getOrElse { e ->
-                lookupError = e as? IOException ?: IOException(e.message, e)
-                return
-            }
+            val resolved =
+                result.getOrElse { e ->
+                    lookupError = e as? IOException ?: IOException(e.message, e)
+                    return
+                }
             mainHandler.post { onResolved(trackId, resolved) }
             val streamItem =
                 mediaItem
@@ -190,5 +196,23 @@ class ResolvingTrackMediaSourceFactory(
 
     private companion object {
         const val CHILD_ID = 0
+
+        // Teil-Roadmap 4 (M-7): was an unbounded cached thread pool. In this store build every
+        // track is a file on the device and the resolver is never reached (docs/DECISIONS.md);
+        // the bound keeps the seam safe should a resolver ever block.
+        const val MAX_LOOKUP_THREADS = 2
+        const val IDLE_THREAD_TIMEOUT_SECONDS = 30L
+
+        // A fixed pool of MAX_LOOKUP_THREADS whose idle threads end after a while, so a player
+        // that plays only local files keeps no lookup threads alive.
+        fun boundedLookupExecutor(): ExecutorService =
+            ThreadPoolExecutor(
+                MAX_LOOKUP_THREADS,
+                MAX_LOOKUP_THREADS,
+                IDLE_THREAD_TIMEOUT_SECONDS,
+                TimeUnit.SECONDS,
+                LinkedBlockingQueue(),
+            ) { runnable -> Thread(runnable, "StreamLookup").apply { isDaemon = true } }
+                .apply { allowCoreThreadTimeOut(true) }
     }
 }

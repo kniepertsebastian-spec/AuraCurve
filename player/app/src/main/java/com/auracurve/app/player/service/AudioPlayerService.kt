@@ -403,8 +403,9 @@ class AudioPlayerService : MediaLibraryService() {
                 val networkCode =
                     error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED ||
                         error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT
-                handlePlaybackFailure(exoPlayer, // The store build has no network permission, so it cannot ask whether a connection exists.
-                    PlaybackFailureClassifier.classify(online = true, networkErrorCode = networkCode, cause = error))
+                // The store build has no network permission, so it cannot ask whether a connection exists.
+                val failure = PlaybackFailureClassifier.classify(online = true, networkErrorCode = networkCode, cause = error)
+                handlePlaybackFailure(exoPlayer, failure)
             }
         }
 
@@ -443,7 +444,8 @@ class AudioPlayerService : MediaLibraryService() {
     // This track cannot be played (no stream, stream error while online): say so and carry on
     // with the queue instead of hanging on it.
     private fun skipUnplayableTrack(exoPlayer: ExoPlayer) {
-        notice = PlayerNotice.NotPlayable(exoPlayer.currentMediaItem?.mediaMetadata?.title?.toString().orEmpty())
+        val title = exoPlayer.currentMediaItem?.mediaMetadata?.title
+        notice = PlayerNotice.NotPlayable(title?.toString().orEmpty())
         if (exoPlayer.hasNextMediaItem()) {
             exoPlayer.seekToNextMediaItem()
             exoPlayer.prepare()
@@ -690,13 +692,14 @@ class AudioPlayerService : MediaLibraryService() {
         }
         val trackId = TrackMediaItems.trackId(item)
         val known = trackId?.let { knownTracks[it] }
+        val metadata = item.mediaMetadata
         val duration = exoPlayer.duration.takeIf { it != C.TIME_UNSET && it > 0 }
         // Chosen but not ready yet: the stream is being looked up or the first data loads.
         val loading = exoPlayer.playWhenReady && exoPlayer.playbackState == Player.STATE_BUFFERING && duration == null
         NowPlayingState.update(
             NowPlaying(
-                title = known?.title ?: item.mediaMetadata.title?.toString().orEmpty(),
-                artist = known?.artist ?: item.mediaMetadata.artist?.toString().orEmpty(),
+                title = known?.title ?: metadata.title?.toString().orEmpty(),
+                artist = known?.artist ?: metadata.artist?.toString().orEmpty(),
                 isPlaying = isPlayingOrLoading(exoPlayer),
                 artworkUrl = known?.artworkUrl ?: TrackMediaItems.toTrackItem(item)?.artworkUrl,
                 durationMs = duration ?: 0L,
