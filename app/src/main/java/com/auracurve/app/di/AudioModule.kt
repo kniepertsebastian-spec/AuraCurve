@@ -1,6 +1,5 @@
 package com.auracurve.app.di
 
-import android.os.Build
 import com.auracurve.app.audio.AndroidAudioEffectRepository
 import com.auracurve.app.audio.AndroidAudioEngine
 import com.auracurve.app.audio.AndroidAudioPlaybackMonitor
@@ -12,13 +11,11 @@ import com.auracurve.app.audio.AudioEngine
 import com.auracurve.app.audio.AudioPlaybackMonitor
 import com.auracurve.app.audio.AudioRouteRepository
 import com.auracurve.app.audio.AudioSessionRepository
-import com.auracurve.app.audio.NoOpAudioPlaybackMonitor
 import com.auracurve.app.audio.SystemVolumeRepository
 import com.auracurve.app.auto.AndroidCarConnectionRepository
 import com.auracurve.app.auto.CarConnectionRepository
 import dagger.Binds
 import dagger.Module
-import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
@@ -50,17 +47,8 @@ abstract class AudioModule {
     @Singleton
     abstract fun bindCarConnectionRepository(impl: AndroidCarConnectionRepository): CarConnectionRepository
 
-    companion object {
-        @Provides
-        @Singleton
-        fun provideAudioPlaybackMonitor(
-            androidMonitor: AndroidAudioPlaybackMonitor,
-            noOpMonitor: NoOpAudioPlaybackMonitor,
-        ): AudioPlaybackMonitor =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                androidMonitor
-            } else {
-                noOpMonitor
-            }
-    }
+    // minSdk 28: the playback callback (API 26+) is always there, so no fallback monitor is needed.
+    @Binds
+    @Singleton
+    abstract fun bindAudioPlaybackMonitor(impl: AndroidAudioPlaybackMonitor): AudioPlaybackMonitor
 }

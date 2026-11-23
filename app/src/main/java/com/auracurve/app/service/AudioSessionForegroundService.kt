@@ -162,6 +162,8 @@ class AudioSessionForegroundService : LifecycleService() {
         routeRepository.stopMonitoring()
         volumeRepository.stopMonitoring()
         playbackMonitor.stopMonitoring()
+        // Returns at once: releasing the effects is queued on the engine's audio thread, so the
+        // main thread does not wait for the audio server here.
         audioEngine.markDetached()
         super.onDestroy()
     }

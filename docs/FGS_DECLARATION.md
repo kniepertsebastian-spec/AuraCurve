@@ -45,8 +45,17 @@ What keeps the service honest (already in the code):
 
 ## Fallback if Play rejects `mediaPlayback` for this service
 
-Change the type of `AudioSessionForegroundService` to `specialUse` with the permission
-`FOREGROUND_SERVICE_SPECIAL_USE`, the property `android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE`
-("Attaches the user's equalizer to the audio session of the app that is playing") and the same
-text and video in the declaration. Adjust `promoteToForegroundSafely` and the manifest together.
-`specialUse` is reviewed by hand, so allow extra review time.
+Ready as a branch: **`claude/pensive-keller-hkwhga-tr1-fgs-special-use`** (draft pull request, do not
+merge unless Play rejects `mediaPlayback`). It changes the type of `AudioSessionForegroundService` to
+`specialUse` with the permission `FOREGROUND_SERVICE_SPECIAL_USE`, the property
+`android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE` ("Attaches the user's equalizer to the audio session
+of the app that is playing") and `promoteToForegroundSafely` to match; the player service keeps
+`mediaPlayback`. Use the same text and video in the declaration. `specialUse` is reviewed by hand,
+so allow extra review time.
+
+## Verify before the production release
+
+Upload the release bundle to a **closed testing** track early (Play Console › Testing › Closed
+testing) and fill in the foreground-service declaration there. The review of that upload is the
+real answer to whether `mediaPlayback` is accepted for a service that plays nothing itself; switch
+to the fallback branch above if it is rejected.
