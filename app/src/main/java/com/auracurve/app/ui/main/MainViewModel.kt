@@ -28,15 +28,18 @@ import com.auracurve.app.correction.CorrectionProfileRepository
 import com.auracurve.app.data.correction.CorrectionProfileJsonSerializer
 import com.auracurve.app.data.preset.PresetShareCodec
 import com.auracurve.app.di.DefaultDispatcher
+import com.auracurve.app.diagnostics.DiagnosticsCoordinator
 import com.auracurve.app.diagnostics.DiagnosticsRecorder
 import com.auracurve.app.diagnostics.NoSystemDiagnosticsSource
-import com.auracurve.app.diagnostics.OutputAudioInfo
-import com.auracurve.app.diagnostics.ProcessExitRecord
+import com.auracurve.app.diagnostics.SystemDiagnosticsSnapshot
 import com.auracurve.app.diagnostics.SystemDiagnosticsSource
 import com.auracurve.app.dsp.HeadphonePower
 import com.auracurve.app.dsp.HeadroomCalculator
 import com.auracurve.app.dsp.ParametricBand
+import com.auracurve.app.eq.CorrectionProfileCoordinator
 import com.auracurve.app.eq.EqController
+import com.auracurve.app.eq.EqCoordinators
+import com.auracurve.app.eq.RouteProfileCoordinator
 import com.auracurve.app.integration.PlayerBridge
 import com.auracurve.app.integration.PlayerSource
 import com.auracurve.app.preset.GenrePreset
@@ -60,6 +63,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -72,8 +76,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.coroutines.CoroutineContext
 
 private const val FEEDBACK_BUFFER = 8
+
+// Keeps the grouped UI state alive across a configuration change (rotation), not longer.
+private const val UI_STATE_STOP_TIMEOUT_MS = 5_000L
 
 private const val KEY_SHOW_SOURCE_PICKER = "show_source_picker"
 
@@ -100,44 +108,35 @@ data class CorrectionProfileImportPreview(
 typealias CompareSide = com.auracurve.app.eq.CompareSide
 typealias CompareState = com.auracurve.app.eq.CompareState
 
-data class SystemDiagnosticsSnapshot(
-    val processExits: List<ProcessExitRecord> = emptyList(),
-    val outputAudio: OutputAudioInfo? = null,
-    val extendedAppDetection: Boolean? = null,
-)
-
 /**
  * The equalizer screen's view model. Since E-008 stage 2 the equalizer's state and control logic
  * live in the process-wide [EqController]; this class only forwards to it (its public API is
  * unchanged, so the screens did not change) and keeps what belongs to the screen: dialogs,
  * previews, suggestions, the source picker and short confirmations.
+ *
+ * Roadmap 3: the repositories it used to take one by one come through the coordinators that own
+ * them now ([RouteProfileCoordinator], [CorrectionProfileCoordinator], [DiagnosticsCoordinator]).
  */
 @HiltViewModel
 class MainViewModel
     @Inject
     constructor(
         private val controller: EqController,
-        private val repository: AudioEffectRepository,
+        private val routeProfiles: RouteProfileCoordinator,
+        private val corrections: CorrectionProfileCoordinator,
+        private val diagnostics: DiagnosticsCoordinator,
         private val audioEngine: AudioEngine,
-        private val routeRepository: AudioRouteRepository,
-        private val diagnosticsRecorder: DiagnosticsRecorder,
         private val playerBridge: PlayerBridge,
-        private val correctionProfileRepository: CorrectionProfileRepository,
-        private val deviceProfileRepository: DeviceProfileRepository,
         private val texts: TextProvider,
-        private val deviceAliases: DeviceAliasStore,
-        private val suggestionDismissals: CorrectionSuggestionDismissals,
-        private val sessionRepository: AudioSessionRepository,
-        private val carConnectionRepository: CarConnectionRepository,
-        private val systemDiagnostics: SystemDiagnosticsSource,
         @DefaultDispatcher private val backgroundDispatcher: CoroutineDispatcher,
         // Process death: the few screen flags worth restoring (see showSourcePicker).
         private val savedState: SavedStateHandle,
     ) : ViewModel() {
         /**
-         * The constructor the tests have always used: builds a private [EqController] on the main
-         * thread (as viewModelScope did) from the same dependencies, so the view model behaves as
-         * before E-008 stage 2 without any test changing.
+         * The constructor the tests have always used: builds a private [EqController] and its
+         * coordinators on the main thread (as viewModelScope did) from the same dependencies, so
+         * the view model behaves as before E-008 stage 2 without any test changing. The scope it
+         * creates for them belongs to this view model and is cancelled when it is cleared.
          */
         constructor(
             repository: AudioEffectRepository,
@@ -161,38 +160,51 @@ class MainViewModel
             backgroundDispatcher: CoroutineDispatcher,
             savedState: SavedStateHandle = SavedStateHandle(),
         ) : this(
-            controller =
-                EqController(
-                    audioEngine = audioEngine,
-                    routeRepository = routeRepository,
-                    volumeRepository = volumeRepository,
-                    playerBridge = playerBridge,
-                    presetRepository = presetRepository,
-                    appSettingsRepository = appSettingsRepository,
-                    correctionProfileRepository = correctionProfileRepository,
-                    deviceProfileRepository = deviceProfileRepository,
-                    sessionRepository = sessionRepository,
-                    carConnectionRepository = carConnectionRepository,
-                    quickControls = quickControls,
-                    appProfileRepository = appProfileRepository,
-                    scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
-                ),
-            repository = repository,
-            audioEngine = audioEngine,
-            routeRepository = routeRepository,
-            diagnosticsRecorder = diagnosticsRecorder,
-            playerBridge = playerBridge,
-            correctionProfileRepository = correctionProfileRepository,
-            deviceProfileRepository = deviceProfileRepository,
-            texts = texts,
-            deviceAliases = deviceAliases,
-            suggestionDismissals = suggestionDismissals,
-            sessionRepository = sessionRepository,
-            carConnectionRepository = carConnectionRepository,
-            systemDiagnostics = systemDiagnostics,
-            backgroundDispatcher = backgroundDispatcher,
-            savedState = savedState,
+            OwnedGraph(
+                scope = OwnedScope(),
+                audioEngine = audioEngine,
+                coordinators = { scope ->
+                    EqCoordinators.create(
+                        audioEngine = audioEngine,
+                        playerBridge = playerBridge,
+                        routeRepository = routeRepository,
+                        presetRepository = presetRepository,
+                        appSettingsRepository = appSettingsRepository,
+                        correctionProfileRepository = correctionProfileRepository,
+                        deviceProfileRepository = deviceProfileRepository,
+                        sessionRepository = sessionRepository,
+                        carConnectionRepository = carConnectionRepository,
+                        appProfileRepository = appProfileRepository,
+                        deviceAliases = deviceAliases,
+                        suggestionDismissals = suggestionDismissals,
+                        scope = scope,
+                    )
+                },
+                volumeRepository = volumeRepository,
+                quickControls = quickControls,
+                diagnostics = DiagnosticsCoordinator(repository, diagnosticsRecorder, systemDiagnostics, backgroundDispatcher),
+                playerBridge = playerBridge,
+                texts = texts,
+                backgroundDispatcher = backgroundDispatcher,
+                savedState = savedState,
+            ),
         )
+
+        private constructor(graph: OwnedGraph) : this(
+            controller = graph.controller,
+            routeProfiles = graph.coordinators.routeProfiles,
+            corrections = graph.coordinators.corrections,
+            diagnostics = graph.diagnostics,
+            audioEngine = graph.audioEngine,
+            playerBridge = graph.playerBridge,
+            texts = graph.texts,
+            backgroundDispatcher = graph.backgroundDispatcher,
+            savedState = graph.savedState,
+        ) {
+            // The controller's jobs (route, volume and session collectors) would otherwise outlive
+            // this view model: nothing else ever cancels a scope created here.
+            addCloseable(graph.scope)
+        }
 
         private val _showDebugEffects = MutableStateFlow(false)
         val showDebugEffects: StateFlow<Boolean> = _showDebugEffects.asStateFlow()
@@ -211,17 +223,17 @@ class MainViewModel
         val engineState: StateFlow<AudioEngineState> = audioEngine.state
 
         // Every app currently holding an audio effect session, and the one the EQ is bound to.
-        val audioSessions: StateFlow<List<AudioSession>> = sessionRepository.sessions
-        val activeAudioSession: StateFlow<AudioSession?> = sessionRepository.activeSession
+        val audioSessions: StateFlow<List<AudioSession>> = routeProfiles.sessions
+        val activeAudioSession: StateFlow<AudioSession?> = routeProfiles.activeSession
 
         val isOwnPlayerSession: StateFlow<Boolean> = controller.isOwnPlayerSession
 
         // Android Auto / Automotive OS is running - a safe "car" signal that does not depend on
         // the Bluetooth device name (and also holds when the audio goes over USB).
-        val androidAutoConnected: StateFlow<Boolean> = carConnectionRepository.carConnected
+        val androidAutoConnected: StateFlow<Boolean> = routeProfiles.carConnected
 
         fun selectAudioSession(session: AudioSession) {
-            sessionRepository.setActiveSession(session)
+            routeProfiles.selectSession(session)
         }
 
         val appProfileBound: StateFlow<Boolean> = controller.appProfileBound
@@ -229,30 +241,18 @@ class MainViewModel
         fun setAppProfileBound(bound: Boolean) = controller.setAppProfileBound(bound)
 
         val capabilities = audioEngine.capabilities
-        val currentRoute: StateFlow<AudioRoute> = routeRepository.activeRoute
+        val currentRoute: StateFlow<AudioRoute> = routeProfiles.currentRoute
 
         // The route as shown to the user: the device's own name unless the user gave it one.
-        val displayRoute: StateFlow<AudioRoute> =
-            combine(currentRoute, deviceAliases.aliases) { route, aliases ->
-                aliases[route.id]?.let { route.copy(name = it) } ?: route
-            }.stateIn(viewModelScope, SharingStarted.Eagerly, routeRepository.activeRoute.value)
+        val displayRoute: StateFlow<AudioRoute> = routeProfiles.displayRoute
 
         // Blank resets to the device's own name.
-        fun renameCurrentRoute(name: String) {
-            deviceAliases.setAlias(currentRoute.value.id, name)
-        }
+        fun renameCurrentRoute(name: String) = routeProfiles.renameCurrentRoute(name)
 
-        val diagnosticsEvents = diagnosticsRecorder.events
+        val diagnosticsEvents = diagnostics.events
 
         // Read when the diagnostics screen opens (roadmap 06, P6-4/P5-8): platform calls, so off the main thread.
-        suspend fun loadSystemDiagnostics(): SystemDiagnosticsSnapshot =
-            withContext(backgroundDispatcher) {
-                SystemDiagnosticsSnapshot(
-                    systemDiagnostics.recentProcessExits(),
-                    systemDiagnostics.outputAudioInfo(),
-                    systemDiagnostics.extendedAppDetectionGranted(),
-                )
-            }
+        suspend fun loadSystemDiagnostics(): SystemDiagnosticsSnapshot = diagnostics.loadSystemDiagnostics()
 
         val currentLevelDb: StateFlow<Float> = controller.currentLevelDb
         val effectiveHeadphoneAcoustics: StateFlow<Boolean> = controller.effectiveHeadphoneAcoustics
@@ -311,7 +311,7 @@ class MainViewModel
             // activeCorrectionProfile itself (acceptSuggestedCorrectionProfile()
             // does, but only once the user actually taps it).
             viewModelScope.launch {
-                routeRepository.activeRoute.collect { route ->
+                currentRoute.collect { route ->
                     updateSuggestedCorrectionProfile(route)
                 }
             }
@@ -335,10 +335,7 @@ class MainViewModel
             _showDebugEffects.value = showing
             if (showing) {
                 viewModelScope.launch {
-                    _effectDescriptors.value =
-                        withContext(backgroundDispatcher) {
-                            repository.queryAvailableEffects()
-                        }
+                    _effectDescriptors.value = diagnostics.availableEffects()
                 }
             }
         }
@@ -365,11 +362,11 @@ class MainViewModel
         // offered its headphone correction. The catalogue is read and matched off the main thread.
         private suspend fun updateSuggestedCorrectionProfile(route: AudioRoute) {
             val eligibleType = route.type == AudioDeviceType.BLUETOOTH || route.type == AudioDeviceType.USB
-            if (!eligibleType || suggestionDismissals.isDismissed(route.id)) {
+            if (!eligibleType || corrections.isSuggestionDismissed(route.id)) {
                 _suggestedCorrectionProfile.value = null
                 return
             }
-            val boundCorrection = deviceProfileRepository.getProfileForRoute(route.id)?.boundCorrectionProfileId
+            val boundCorrection = routeProfiles.boundCorrectionProfileId(route.id)
             if (boundCorrection != null && boundCorrection != BuiltInCorrectionProfiles.None.id) {
                 _suggestedCorrectionProfile.value = null
                 return
@@ -389,7 +386,7 @@ class MainViewModel
         }
 
         fun dismissSuggestedCorrectionProfile() {
-            suggestionDismissals.dismiss(currentRoute.value.id)
+            corrections.dismissSuggestion(currentRoute.value.id)
             _suggestedCorrectionProfile.value = null
         }
 
@@ -655,7 +652,117 @@ class MainViewModel
         fun setSubsonicFilterEnabled(enabled: Boolean) = controller.setSubsonicFilterEnabled(enabled)
 
         fun setVirtualBassEnabled(enabled: Boolean) = controller.setVirtualBassEnabled(enabled)
+
+        // Roadmap 3: the screen's state grouped by topic (see EqualizerUiState.kt). Declared last,
+        // because each group reads the flows above when it is created. Only collected while the
+        // screen is visible; the single flows above stay for the diagnostics screen and the tests.
+
+        val deviceUiState: StateFlow<EqDeviceUiState> =
+            uiState(
+                engineState,
+                displayRoute,
+                capabilities,
+                audioSessions,
+                activeAudioSession,
+                appProfileBound,
+                isOwnPlayerSession,
+                deviceKindPrompt,
+            ) {
+                EqDeviceUiState(
+                    engineState = engineState.value,
+                    route = displayRoute.value,
+                    bands = capabilities.value.bands,
+                    preEqActive = capabilities.value.preEqCutoffsHz.isNotEmpty(),
+                    audioSessions = audioSessions.value,
+                    activeAudioSession = activeAudioSession.value,
+                    appProfileBound = appProfileBound.value,
+                    isOwnPlayerSession = isOwnPlayerSession.value,
+                    deviceKindPrompt = deviceKindPrompt.value,
+                )
+            }
+
+        val presetUiState: StateFlow<EqPresetUiState> =
+            uiState(activePreset, customPresetsOnly, moreIntensity, isDirty) {
+                EqPresetUiState(
+                    activePreset = activePreset.value,
+                    customPresets = customPresetsOnly.value,
+                    moreIntensity = moreIntensity.value,
+                    isDirty = isDirty.value,
+                )
+            }
+
+        val correctionUiState: StateFlow<EqCorrectionUiState> =
+            uiState(
+                activeCorrectionProfile,
+                allCorrectionProfiles,
+                suggestedCorrectionProfile,
+                effectiveHeadphoneAcoustics,
+                headphonePower,
+            ) {
+                EqCorrectionUiState(
+                    activeProfile = activeCorrectionProfile.value,
+                    allProfiles = allCorrectionProfiles.value,
+                    suggested = suggestedCorrectionProfile.value,
+                    effectiveHeadphoneAcoustics = effectiveHeadphoneAcoustics.value,
+                    headphonePower = headphonePower.value,
+                )
+            }
+
+        val shapingUiState: StateFlow<EqShapingUiState> =
+            uiState(activeGoal, activeContext, compare) {
+                EqShapingUiState(activeGoal = activeGoal.value, activeContext = activeContext.value, compare = compare.value)
+            }
+
+        val dialogsUiState: StateFlow<MainDialogsUiState> =
+            uiState(showSourcePicker, pendingImportPreview, importError, pendingDeletePreset) {
+                MainDialogsUiState(
+                    showSourcePicker = showSourcePicker.value,
+                    pendingImportPreview = pendingImportPreview.value,
+                    importError = importError.value,
+                    pendingDeletePreset = pendingDeletePreset.value,
+                )
+            }
+
+        val debugToolsUiState: StateFlow<DebugToolsUiState> =
+            uiState(showDebugEffects, effectDescriptors) {
+                DebugToolsUiState(showDebugEffects = showDebugEffects.value, descriptors = effectDescriptors.value)
+            }
+
+        // A group rebuilt from the current values of its sources whenever one of them changes. All
+        // sources are StateFlows, so reading their values is at least as new as what combine saw.
+        private fun <T> uiState(
+            vararg sources: StateFlow<*>,
+            snapshot: () -> T,
+        ): StateFlow<T> =
+            combine(sources.toList()) { snapshot() }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(UI_STATE_STOP_TIMEOUT_MS), snapshot())
     }
+
+// The view model's own controller and coordinators, for the test constructor (see there).
+private class OwnedGraph(
+    val scope: OwnedScope,
+    val audioEngine: AudioEngine,
+    coordinators: (CoroutineScope) -> EqCoordinators,
+    volumeRepository: SystemVolumeRepository,
+    quickControls: QuickControls,
+    val diagnostics: DiagnosticsCoordinator,
+    val playerBridge: PlayerBridge,
+    val texts: TextProvider,
+    val backgroundDispatcher: CoroutineDispatcher,
+    val savedState: SavedStateHandle,
+) {
+    val coordinators: EqCoordinators = coordinators(scope)
+    val controller: EqController = EqController(this.coordinators, audioEngine, volumeRepository, quickControls, scope)
+}
+
+// Main thread, as viewModelScope; cancelled through ViewModel.addCloseable when the view model is cleared.
+private class OwnedScope :
+    CoroutineScope,
+    AutoCloseable {
+    override val coroutineContext: CoroutineContext = SupervisorJob() + Dispatchers.Main.immediate
+
+    override fun close() = coroutineContext.cancel()
+}
 
 private object NoCarConnectionRepository : CarConnectionRepository {
     override val carConnected: StateFlow<Boolean> = MutableStateFlow(false)

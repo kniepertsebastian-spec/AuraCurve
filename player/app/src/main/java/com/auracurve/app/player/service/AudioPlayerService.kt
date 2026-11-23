@@ -39,7 +39,8 @@ import com.auracurve.app.playback.SleepTimerSetting
 import com.auracurve.app.player.PlayerLaunch
 import com.auracurve.app.player.R
 import com.auracurve.app.player.model.TrackItem
-import com.auracurve.app.player.playback.AutoCatalogHolder
+import com.auracurve.app.player.playback.AutoCatalog
+import com.auracurve.app.player.playback.AutoCatalogProvider
 import com.auracurve.app.player.playback.AutoNode
 import com.auracurve.app.player.playback.NowPlaying
 import com.auracurve.app.player.playback.NowPlayingState
@@ -85,7 +86,7 @@ import kotlin.random.Random
  *
  * One media library session serves everything outside the app: the notification (Media3's
  * own, kept in step with the player), the lock screen, Bluetooth buttons, Wear, and Android
- * Auto, which also browses the app's playlists through it (AutoCatalogHolder).
+ * Auto, which also browses the app's playlists through it (the [AutoCatalog] the app provides).
  *
  * The app's screens send it commands through PlayerCommands (ACTION_*; tracks for a new queue
  * wait in QueueRequests) and read NowPlayingState / PlaybackQueueState, all in the same process.
@@ -95,6 +96,11 @@ import kotlin.random.Random
  */
 @OptIn(UnstableApi::class)
 class AudioPlayerService : MediaLibraryService() {
+    // What the car can browse and play: the app provides it through its Application
+    // (AutoCatalogProvider), so this module needs no global holder and no DI framework of its own.
+    private val autoCatalog: AutoCatalog?
+        get() = (application as? AutoCatalogProvider)?.autoCatalog
+
     companion object {
         const val CHANNEL_ID = "auracurve_player_channel"
 
@@ -878,7 +884,7 @@ class AudioPlayerService : MediaLibraryService() {
             params: LibraryParams?,
         ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
             if (!isTrustedBrowser(browser)) return Futures.immediateFuture(LibraryResult.ofError(SessionError.ERROR_PERMISSION_DENIED))
-            val catalog = AutoCatalogHolder.catalog ?: return Futures.immediateFuture(LibraryResult.ofItemList(emptyList(), params))
+            val catalog = autoCatalog ?: return Futures.immediateFuture(LibraryResult.ofItemList(emptyList(), params))
             return libraryFuture {
                 val nodes = runCatching { catalog.children(parentId) }.getOrDefault(emptyList())
                 val start = page.toLong() * pageSize
@@ -922,7 +928,7 @@ class AudioPlayerService : MediaLibraryService() {
             }
             resetFailureState()
             val first = mediaItems.firstOrNull() ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
-            val catalog = AutoCatalogHolder.catalog ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
+            val catalog = autoCatalog ?: return Futures.immediateFailedFuture(UnsupportedOperationException())
             val trackId = first.mediaId.takeIf { AutoMediaId.isTrack(it) }
             if (trackId == null && first.mediaId.isNotEmpty()) return Futures.immediateFailedFuture(UnsupportedOperationException())
             val query = first.requestMetadata.searchQuery.orEmpty()

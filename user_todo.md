@@ -101,3 +101,50 @@ Danach prüfen:
 
 - [ ] `docs/PRIVACY_POLICY_DRAFT.md` (Abschnitt 2) wurde um die Backup-Ausnahmen ergänzt – bitte die
       veröffentlichte Fassung (Store-Eintrag/Website) entsprechend aktualisieren.
+
+---
+
+## Teil-Roadmap 3 (Architektur, State-Management & Compose-UI)
+
+Der Code-Teil der Roadmap ist umgesetzt (PR auf `claude/trusting-mccarthy-jxiai5`, neu auf `main`
+aufgesetzt). In der Cloud-Session wurde diesmal mit Android SDK gebaut: ktlint, `assembleDebug`,
+alle Unit-Tests (`:app` inkl. `EqCharacterizationTest`, `MainViewModelTest`, `EqualizerScreenUiTest`,
+`PlayerShellUiTest`, neu `EqualizerRecompositionTest` und `MainViewModelScopeTest`; `:player`; `:core`),
+Release-Build und Lint liefen lokal. Diese Punkte brauchen ein Gerät oder die Play-/GitHub-Oberfläche.
+
+### 1. CI
+
+- [ ] CI-Lauf auf dem PR grün (ktlint, Build, Unit-Tests, `check_store_apk.py`, Release-Build, Lint).
+
+### 2. Recomposition im Layout Inspector prüfen (Definition of Done)
+
+Debug-Build auf einem Gerät/Emulator starten, in Android Studio *Layout Inspector* öffnen und
+*Show Recomposition Counts* einschalten.
+
+- [ ] Im Tab „Fine tune“ einen Band- oder Makro-Regler ziehen: `MainScreen` und `EqualizerContent`
+      zählen nicht mit; hoch zählen nur `HeadGraph`/`ResponseGraph`, `FineTuneSection` und die Slider.
+- [ ] Lautstärketasten drücken (Kopfhörermodus an): `MainScreen` zählt nicht mit; höchstens die
+      Kurve (`HeadGraph`) zählt hoch.
+- [ ] Tab „Sound“: Regler im Tab „Fine tune“ ändern, zurückwechseln – `GenreSection` und
+      `ModulesSection` wurden dabei nicht neu zusammengesetzt (Zähler unverändert).
+
+### 3. Kurzer Funktionstest nach dem Umbau
+
+Das Verhalten soll unverändert sein (die Golden-Tests decken die Logik ab); auf dem Gerät einmal kurz:
+
+- [ ] Preset wählen, Regler ändern, „Save“ (als neues Preset), umbenennen, löschen; App neu starten –
+      zuletzt aktiver Klang ist wieder da.
+- [ ] Bluetooth-Kopfhörer verbinden/trennen: gerätespezifischer Klang und Korrektur werden übernommen.
+- [ ] Original/EQ-Vergleich (Tab „Sound“) und „Hold to compare“ funktionieren.
+- [ ] Android Auto (z. B. mit der Desktop Head Unit oder im Auto): Playlists lassen sich durchsuchen
+      und abspielen. Der Katalog kommt jetzt über `AutoCatalogProvider` (Application) statt über das frühere
+      globale `AutoCatalogHolder` – ein leerer Ordner im Auto wäre ein Hinweis auf ein Problem.
+- [ ] Optional, Debug-Build: unter „More tools“ › „Show debug effects“ erscheint die Effektliste.
+
+### 4. Hinweis zum Merge
+
+- [ ] Teil-Roadmap 2 ist bereits in `main`; die angekündigte Überschneidung in `AuraCurveApplication.kt`
+      ist damit aufgelöst. Falls Teil-Roadmap 1 oder 4 noch offen ist und `AuraCurveApplication.kt`,
+      `EqController.kt`, `MainViewModel.kt` oder `EqualizerScreen.kt` ändert, gibt es dort Konflikte:
+      diese Dateien wurden hier stark umgebaut (Logik liegt jetzt in den Koordinatoren unter `eq/`
+      bzw. den Sektionsdateien unter `ui/equalizer/`, siehe `docs/ARCHITECTURE.md`).

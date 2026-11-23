@@ -29,10 +29,11 @@ interface AutoCatalog {
     suspend fun queueForSearch(query: String): AutoQueue?
 }
 
-// Same-process hand-over point between the app (which owns the catalog, set up in
-// AuraCurveApplication) and the player service, whose media library session answers the
-// car, like NowPlayingState.
-object AutoCatalogHolder {
-    @Volatile
-    var catalog: AutoCatalog? = null
+/**
+ * Implemented by the app's Application class: how the player service gets the app's [AutoCatalog]
+ * (interface injection, roadmap 3). Replaces the former global AutoCatalogHolder that the app had
+ * to fill in at start-up; the app's dependency injection provides the catalog behind it.
+ */
+interface AutoCatalogProvider {
+    val autoCatalog: AutoCatalog
 }

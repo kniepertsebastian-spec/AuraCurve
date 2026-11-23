@@ -13,9 +13,8 @@ import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.crossfade
-import com.auracurve.app.auto.AppAutoCatalog
-import com.auracurve.app.player.PlayerText
-import com.auracurve.app.player.playback.AutoCatalogHolder
+import com.auracurve.app.player.playback.AutoCatalog
+import com.auracurve.app.player.playback.AutoCatalogProvider
 import com.auracurve.app.player.playback.PlaybackFadeState
 import com.auracurve.app.player.playback.PlayerDspState
 import com.auracurve.app.quick.EqToggleTileService
@@ -31,9 +30,12 @@ import javax.inject.Inject
 @HiltAndroidApp
 class AuraCurveApplication :
     Application(),
-    SingletonImageLoader.Factory {
+    SingletonImageLoader.Factory,
+    AutoCatalogProvider {
+    // What the car (Android Auto) may browse and play, for the player module's service (it asks
+    // the Application for it, see AutoCatalogProvider). Bound to AppAutoCatalog in AutoModule.
     @Inject
-    lateinit var autoCatalog: AppAutoCatalog
+    override lateinit var autoCatalog: AutoCatalog
 
     // Tells the session service whether a screen of this app is open (it never closes itself then).
     @Inject
@@ -59,9 +61,6 @@ class AuraCurveApplication :
                 QuickWidgetProvider.updateAll(context, quickControls.state.value, quickControls.hasConsumer)
             }
         }
-        PlayerText.init(this)
-        // What the car (Android Auto) may browse and play; also read by the player service.
-        AutoCatalogHolder.catalog = autoCatalog
         registerActivityLifecycleCallbacks(appVisibility.callbacks)
         // Starts as early as the app process exists (not only once MainActivity/
         // MainViewModel is created), so the session-open broadcast a player sends
