@@ -8,6 +8,7 @@ import com.auracurve.app.dsp.CurveComposer
 import com.auracurve.app.dsp.EqualizerInterpolator
 import com.auracurve.app.dsp.HeadphoneComfortCurve
 import com.auracurve.app.dsp.HeadphonePower
+import com.auracurve.app.dsp.HeadroomCalculator
 import com.auracurve.app.dsp.LoudnessCompensationCurve
 import com.auracurve.app.dsp.LoudnessMatch
 import com.auracurve.app.dsp.PreEqMacros
@@ -16,9 +17,16 @@ import com.auracurve.app.dsp.PreEqResponseMode
 import com.auracurve.app.dsp.SubsonicFilterCurve
 import com.auracurve.app.dsp.VirtualBassApproxCurve
 import com.auracurve.app.dsp.VolumeLevelMapper
+import com.auracurve.app.eq.PresetSettingsMapper
+import com.auracurve.app.eq.ResolvedDynamics
 import com.auracurve.app.preset.BuiltInContextPresets
 import com.auracurve.app.preset.TargetPoint
 import kotlin.math.abs
+
+// The player's curve is handed over as points on this log grid (about 6 per octave).
+private const val PLAYER_CURVE_MIN_HZ = 20f
+private const val PLAYER_CURVE_MAX_HZ = 20_000f
+private const val PLAYER_CURVE_STEP = 1.12f
 
 // Smaller than this, a classic band counts as sitting on the curve (no manual edit).
 private const val MANUAL_DELTA_EPSILON_DB = 0.05f
@@ -148,6 +156,72 @@ object CurveCalculator {
                 PreEqResponseMode.DEFAULT
             }
         return PreEqMapper.map(curve, macros, capabilities.preEqCutoffsHz, deltas, responseMode)
+    }
+
+    /**
+     * The live settings mapped onto the hardware (moved here from EqController, roadmap 3): the
+     * band gains from the combined curve, the input gain that keeps its peak from clipping, the
+     * pre-EQ gains and the given dynamics.
+     *
+     * roadmap-2026.md M4: the headroom comes from the combined *continuous* curve, not just the
+     * highest of the discrete post-mapping band gains - see HeadroomCalculator for why that
+     * undercounts a peak that falls between two hardware band centers.
+     */
+    fun mapToBands(
+        inputs: CurveInputs,
+        bands: List<EqualizerBandCapabilities>,
+        capabilities: AudioCapabilities,
+        dynamics: ResolvedDynamics,
+    ): ProcessingSettings {
+        val settings = inputs.settings
+        val curve = combinedCurve(inputs)
+        val calculatedGains =
+            EqualizerInterpolator.interpolateCurveToBands(
+                curve = curve,
+                bands = bands,
+                macroBassDb = settings.macroBassDb,
+                macroPunchDb = settings.macroPunchDb,
+                macroHaerteDb = settings.macroHaerteDb,
+            )
+        val headroom =
+            HeadroomCalculator.fromCombinedCurve(
+                combinedCurve = curve,
+                macroBassDb = settings.macroBassDb,
+                macroPunchDb = settings.macroPunchDb,
+                macroHaerteDb = settings.macroHaerteDb,
+            )
+        return settings.copy(
+            bandGainsDb = calculatedGains,
+            inputGainDb = PresetSettingsMapper.safetyScaledInputGainDb(headroom.maxPositiveGainDb, inputs.context),
+            mbcEnabled = dynamics.mbcEnabled,
+            mbcThresholdDb = dynamics.mbcThresholdDb,
+            mbcRatio = dynamics.mbcRatio,
+            preEqGainsDb = preEqGains(inputs, capabilities, calculatedGains),
+        )
+    }
+
+    /**
+     * The curve the built-in player's own PCM equalizer gets: points on a log grid (about 6 per
+     * octave) with the macros sampled in, since they are not part of the curve. The subsonic cut
+     * is a real high-pass there and travels separately, so the curve must not contain it twice.
+     */
+    fun playerCurve(inputs: CurveInputs): List<TargetPoint> {
+        val settings = inputs.settings
+        val curve = combinedCurve(inputs, includeSubsonic = false).sortedBy { it.frequencyHz }
+        return generateSequence(PLAYER_CURVE_MIN_HZ) { it * PLAYER_CURVE_STEP }
+            .takeWhile { it <= PLAYER_CURVE_MAX_HZ }
+            .map { hz ->
+                TargetPoint(
+                    hz,
+                    EqualizerInterpolator.resolveGainAtFrequency(
+                        hz,
+                        curve,
+                        settings.macroBassDb,
+                        settings.macroPunchDb,
+                        settings.macroHaerteDb,
+                    ),
+                )
+            }.toList()
     }
 
     /**

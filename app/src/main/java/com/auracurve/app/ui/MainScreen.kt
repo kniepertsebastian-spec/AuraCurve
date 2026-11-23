@@ -53,7 +53,8 @@ import com.auracurve.app.integration.PlayerSource
 import com.auracurve.app.preset.BuiltInGenrePresets
 import com.auracurve.app.preset.Preset
 import com.auracurve.app.ui.equalizer.CurvePreview
-import com.auracurve.app.ui.equalizer.EqualizerScreen
+import com.auracurve.app.ui.equalizer.EqualizerActions
+import com.auracurve.app.ui.equalizer.EqualizerContent
 import com.auracurve.app.ui.equalizer.appLabelFor
 import com.auracurve.app.ui.equalizer.localizedSourceLabel
 import com.auracurve.app.ui.main.MainViewModel
@@ -67,36 +68,19 @@ fun MainScreen(
     // The built-in player has a track loaded (mini player and "Now playing" live in the app shell).
     playerLoaded: Boolean = false,
 ) {
-    val showDebugEffects by viewModel.showDebugEffects.collectAsStateWithLifecycle()
-    val descriptors by viewModel.effectDescriptors.collectAsStateWithLifecycle()
-
-    val engineState by viewModel.engineState.collectAsStateWithLifecycle()
-    val audioSessions by viewModel.audioSessions.collectAsStateWithLifecycle()
-    val activeAudioSession by viewModel.activeAudioSession.collectAsStateWithLifecycle()
-    val appProfileBound by viewModel.appProfileBound.collectAsStateWithLifecycle()
-    val parametricBands by viewModel.parametricBands.collectAsStateWithLifecycle()
-    val isOwnPlayerSession by viewModel.isOwnPlayerSession.collectAsStateWithLifecycle()
-    val deviceKindPrompt by viewModel.deviceKindPrompt.collectAsStateWithLifecycle()
-    val capabilities by viewModel.capabilities.collectAsStateWithLifecycle()
-    val route by viewModel.displayRoute.collectAsStateWithLifecycle()
-    val settings by viewModel.processingSettings.collectAsStateWithLifecycle()
-    val activePreset by viewModel.activePreset.collectAsStateWithLifecycle()
-    val customPresetsOnly by viewModel.customPresetsOnly.collectAsStateWithLifecycle()
-    val moreIntensity by viewModel.moreIntensity.collectAsStateWithLifecycle()
-    val activeCorrectionProfile by viewModel.activeCorrectionProfile.collectAsStateWithLifecycle()
-    val allCorrectionProfiles by viewModel.allCorrectionProfiles.collectAsStateWithLifecycle()
-    val suggestedCorrectionProfile by viewModel.suggestedCorrectionProfile.collectAsStateWithLifecycle()
-    val effectiveHeadphoneAcoustics by viewModel.effectiveHeadphoneAcoustics.collectAsStateWithLifecycle()
-    val headphonePower by viewModel.headphonePower.collectAsStateWithLifecycle()
-    val activeGoal by viewModel.activeGoal.collectAsStateWithLifecycle()
-    val currentLevelDb by viewModel.currentLevelDb.collectAsStateWithLifecycle()
-    val activeContext by viewModel.activeContext.collectAsStateWithLifecycle()
-    val pendingImportPreview by viewModel.pendingImportPreview.collectAsStateWithLifecycle()
-    val importError by viewModel.importError.collectAsStateWithLifecycle()
-    val isDirty by viewModel.isDirty.collectAsStateWithLifecycle()
-    val pendingDeletePreset by viewModel.pendingDeletePreset.collectAsStateWithLifecycle()
-    val showSourcePicker by viewModel.showSourcePicker.collectAsStateWithLifecycle()
-    val compare by viewModel.compare.collectAsStateWithLifecycle()
+    // Roadmap 3: the state in topic groups, each changing rarely (see EqualizerUiState.kt).
+    val dialogs by viewModel.dialogsUiState.collectAsStateWithLifecycle()
+    val device = viewModel.deviceUiState.collectAsStateWithLifecycle()
+    val presets = viewModel.presetUiState.collectAsStateWithLifecycle()
+    val correction = viewModel.correctionUiState.collectAsStateWithLifecycle()
+    val shaping = viewModel.shapingUiState.collectAsStateWithLifecycle()
+    val debugTools = viewModel.debugToolsUiState.collectAsStateWithLifecycle()
+    // What changes many times a second (slider moves, volume steps, a dragged parametric band) is
+    // collected here but not read: EqualizerContent reads it only where it is drawn, so neither
+    // changes recompose this screen.
+    val settings = viewModel.processingSettings.collectAsStateWithLifecycle()
+    val currentLevelDb = viewModel.currentLevelDb.collectAsStateWithLifecycle()
+    val parametricBands = viewModel.parametricBands.collectAsStateWithLifecycle()
     // Leaving the equalizer ends a running Original/EQ comparison, so the next track is not heard "as original" by accident.
     DisposableEffect(Unit) { onDispose { viewModel.endCompare() } }
     var showMoreTools by rememberSaveable { mutableStateOf(false) }
@@ -133,7 +117,7 @@ fun MainScreen(
             viewModel.previewCorrectionProfileImport(sourceName, text)
         }
 
-    if (showSourcePicker) {
+    if (dialogs.showSourcePicker) {
         PlayerSourcePickerDialog(
             onSourceChosen = { viewModel.choosePlayerSource(it) },
             onDismiss = { viewModel.dismissSourcePicker() },
@@ -183,7 +167,7 @@ fun MainScreen(
         )
     }
 
-    pendingDeletePreset?.let { target ->
+    dialogs.pendingDeletePreset?.let { target ->
         AlertDialog(
             onDismissRequest = { viewModel.cancelDeletePreset() },
             title = { Text(stringResource(R.string.preset_delete_title)) },
@@ -204,7 +188,7 @@ fun MainScreen(
     // M5 "the resulting curve is visible before it is applied" / "extreme
     // boosts are not applied silently but limited or confirmed" -
     // nothing is saved until this dialog's "Import" is pressed.
-    pendingImportPreview?.let { preview ->
+    dialogs.pendingImportPreview?.let { preview ->
         AlertDialog(
             onDismissRequest = { viewModel.cancelCorrectionProfileImport() },
             title = { Text(preview.profile.name) },
@@ -245,7 +229,7 @@ fun MainScreen(
         )
     }
 
-    importError?.let { message ->
+    dialogs.importError?.let { message ->
         AlertDialog(
             onDismissRequest = { viewModel.dismissImportError() },
             title = { Text(stringResource(R.string.import_failed_title)) },
@@ -258,82 +242,32 @@ fun MainScreen(
         )
     }
 
-    val snackbarHostState = remember { SnackbarHostState() }
-    LaunchedEffect(Unit) { viewModel.feedback.collect { snackbarHostState.showSnackbar(it) } }
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        // The navigation bar of the app shell below handles the bottom inset.
-        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
-        containerColor = MaterialTheme.colorScheme.background,
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            ReleaseUpdateNotice()
-            EqualizerScreen(
-                state = engineState,
-                route = route,
-                settings = settings,
-                bands = capabilities.bands,
-                activePreset = activePreset,
-                customPresets = customPresetsOnly,
-                genrePresets = BuiltInGenrePresets.all,
-                moreIntensity = moreIntensity,
-                activeCorrectionProfile = activeCorrectionProfile,
-                allCorrectionProfiles = allCorrectionProfiles,
-                suggestedCorrectionProfile = suggestedCorrectionProfile,
-                effectiveHeadphoneAcoustics = effectiveHeadphoneAcoustics,
-                onRenameRoute = { viewModel.renameCurrentRoute(it) },
-                pathLabel =
-                    activeAudioSession?.let { appLabelFor(context, it.packageName) }
-                        ?: if (playerLoaded) stringResource(R.string.source_builtin_player) else null,
-                audioSessions = audioSessions,
-                activeAudioSession = activeAudioSession,
-                parametricBands = parametricBands,
-                onAddParametricBand = { viewModel.addParametricBand() },
-                onChangeParametricBand = { index, band -> viewModel.updateParametricBand(index, band) },
-                onRemoveParametricBand = { viewModel.removeParametricBand(it) },
-                appProfileBound = appProfileBound,
-                onAppProfileBoundChanged = { viewModel.setAppProfileBound(it) },
-                isOwnPlayerSession = isOwnPlayerSession,
-                preEqActive = capabilities.preEqCutoffsHz.isNotEmpty(),
-                onHighResolutionEqChanged = { viewModel.setHighResolutionEq(it) },
-                preEqResponseMode =
-                    try {
-                        com.auracurve.app.dsp.PreEqResponseMode
-                            .valueOf(settings.preEqResponseMode)
-                    } catch (e: Exception) {
-                        com.auracurve.app.dsp.PreEqResponseMode.DEFAULT
-                    },
-                onPreEqResponseModeChanged = { viewModel.setPreEqResponseMode(it) },
-                deviceKindPrompt = deviceKindPrompt,
-                onAnswerDeviceKind = { viewModel.answerDeviceKind(it) },
-                onDismissDeviceKindPrompt = { viewModel.dismissDeviceKindPrompt() },
-                onSelectAudioSession = { viewModel.selectAudioSession(it) },
-                compare = compare,
-                onStartCompare = { viewModel.startCompare() },
-                onCompareSide = { viewModel.setCompareSide(it) },
-                onEndCompare = { viewModel.endCompare() },
-                headphonePower = headphonePower,
-                activeGoal = activeGoal,
-                onGoalSelected = { viewModel.setSoundGoal(it) },
-                activeContext = activeContext,
-                currentLevelDb = currentLevelDb,
-                isDirty = isDirty,
-                onMasterToggled = { viewModel.setMasterEnabled(it) },
-                onOpenSourcePicker = { viewModel.openSourcePicker() },
-                onBypassToggled = { viewModel.setBypass(it) },
-                onPresetSelected = { viewModel.selectPreset(it) },
+    // Created once: the sections that take it are skipped when nothing they show changed.
+    val actions =
+        remember(viewModel, context, clipboard, resources, importCorrectionProfileLauncher) {
+            EqualizerActions(
+                onMasterToggled = viewModel::setMasterEnabled,
+                onOpenSourcePicker = viewModel::openSourcePicker,
+                onBypassToggled = viewModel::setBypass,
+                onRetryAttach = viewModel::retryAttach,
+                onPresetSelected = viewModel::selectPreset,
                 onMoreIntensityChanged = viewModel::setMoreIntensity,
-                onCorrectionProfileSelected = { viewModel.selectCorrectionProfile(it) },
-                onAcceptSuggestedCorrectionProfile = { viewModel.acceptSuggestedCorrectionProfile() },
-                onSearchHeadphones = { viewModel.searchHeadphones(it) },
-                onHeadphoneChosen = { viewModel.applyCatalogHeadphone(it) },
-                onDismissSuggestedCorrectionProfile = { viewModel.dismissSuggestedCorrectionProfile() },
-                onHeadphoneAcousticsChanged = { viewModel.setHeadphoneAcousticsOverride(it) },
-                onHeadphonePowerChanged = { viewModel.setHeadphonePower(it) },
-                onContextModeChanged = { viewModel.setContextMode(it) },
-                onLoudnessCompensationChanged = { viewModel.setLoudnessCompensationEnabled(it) },
-                onSubsonicFilterChanged = { viewModel.setSubsonicFilterEnabled(it) },
-                onVirtualBassChanged = { viewModel.setVirtualBassEnabled(it) },
+                onResetToActivePreset = viewModel::resetToActivePreset,
+                onSaveAsNewRequest = { showSaveAsNewDialog = true },
+                onDuplicatePreset = viewModel::duplicatePreset,
+                onRenamePresetRequest = { renameTarget = it },
+                onDeletePresetRequest = viewModel::requestDeletePreset,
+                onSharePreset = { shareTarget = it },
+                onImportPresetLinkRequested = {
+                    val clip =
+                        clipboard.primaryClip
+                            ?.takeIf { it.itemCount > 0 }
+                            ?.getItemAt(0)
+                            ?.coerceToText(context)
+                            ?.toString()
+                    viewModel.importPresetLink(clip.orEmpty())
+                },
+                onCorrectionProfileSelected = viewModel::selectCorrectionProfile,
                 onImportCorrectionProfileRequested = {
                     // "*/*" rather than a specific text MIME type: AutoEQ files are
                     // typically .txt/.csv, but different file managers/providers
@@ -351,26 +285,61 @@ fun MainScreen(
                         }
                     context.startActivity(Intent.createChooser(shareIntent, resources.getString(R.string.share_correction_profile)))
                 },
-                onResetToActivePreset = { viewModel.resetToActivePreset() },
-                onSaveAsNewRequest = { showSaveAsNewDialog = true },
-                onDuplicatePreset = { viewModel.duplicatePreset(it) },
-                onRenamePresetRequest = { renameTarget = it },
-                onDeletePresetRequest = { viewModel.requestDeletePreset(it) },
-                onSharePreset = { shareTarget = it },
-                onImportPresetLinkRequested = {
-                    val clip =
-                        clipboard.primaryClip
-                            ?.takeIf { it.itemCount > 0 }
-                            ?.getItemAt(0)
-                            ?.coerceToText(context)
-                            ?.toString()
-                    viewModel.importPresetLink(clip.orEmpty())
-                },
-                onMacroBassChanged = { viewModel.setMacroBass(it) },
-                onMacroPunchChanged = { viewModel.setMacroPunch(it) },
-                onMacroHaerteChanged = { viewModel.setMacroHaerte(it) },
-                onBandGainChanged = { idx, gain -> viewModel.setBandGain(idx, gain) },
-                onRetryAttach = { viewModel.retryAttach() },
+                onAcceptSuggestedCorrectionProfile = viewModel::acceptSuggestedCorrectionProfile,
+                onDismissSuggestedCorrectionProfile = viewModel::dismissSuggestedCorrectionProfile,
+                onHeadphoneAcousticsChanged = viewModel::setHeadphoneAcousticsOverride,
+                onHeadphonePowerChanged = viewModel::setHeadphonePower,
+                onSearchHeadphones = viewModel::searchHeadphones,
+                onHeadphoneChosen = viewModel::applyCatalogHeadphone,
+                onGoalSelected = viewModel::setSoundGoal,
+                onContextModeChanged = viewModel::setContextMode,
+                onLoudnessCompensationChanged = viewModel::setLoudnessCompensationEnabled,
+                onSubsonicFilterChanged = viewModel::setSubsonicFilterEnabled,
+                onVirtualBassChanged = viewModel::setVirtualBassEnabled,
+                onStartCompare = viewModel::startCompare,
+                onCompareSide = viewModel::setCompareSide,
+                onEndCompare = viewModel::endCompare,
+                onMacroBassChanged = viewModel::setMacroBass,
+                onMacroPunchChanged = viewModel::setMacroPunch,
+                onMacroHaerteChanged = viewModel::setMacroHaerte,
+                onBandGainChanged = viewModel::setBandGain,
+                onAddParametricBand = viewModel::addParametricBand,
+                onChangeParametricBand = viewModel::updateParametricBand,
+                onRemoveParametricBand = viewModel::removeParametricBand,
+                onHighResolutionEqChanged = viewModel::setHighResolutionEq,
+                onPreEqResponseModeChanged = viewModel::setPreEqResponseMode,
+                onRenameRoute = viewModel::renameCurrentRoute,
+                onSelectAudioSession = viewModel::selectAudioSession,
+                onAppProfileBoundChanged = viewModel::setAppProfileBound,
+                onAnswerDeviceKind = viewModel::answerDeviceKind,
+                onDismissDeviceKindPrompt = viewModel::dismissDeviceKindPrompt,
+            )
+        }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) { viewModel.feedback.collect { snackbarHostState.showSnackbar(it) } }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        // The navigation bar of the app shell below handles the bottom inset.
+        contentWindowInsets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
+        containerColor = MaterialTheme.colorScheme.background,
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            ReleaseUpdateNotice()
+            val activeSession = device.value.activeAudioSession
+            EqualizerContent(
+                device = device.value,
+                presets = presets.value,
+                correction = correction.value,
+                shaping = shaping.value,
+                genrePresets = BuiltInGenrePresets.all,
+                pathLabel =
+                    activeSession?.let { appLabelFor(context, it.packageName) }
+                        ?: if (playerLoaded) stringResource(R.string.source_builtin_player) else null,
+                settings = { settings.value },
+                currentLevelDb = { currentLevelDb.value },
+                parametricBands = { parametricBands.value },
+                actions = actions,
                 // Diagnostics and debug tools sit at the end of the Device tab instead of taking a
                 // row under every tab.
                 deviceTabFooter = {
@@ -382,6 +351,7 @@ fun MainScreen(
                     ) {
                         Text(stringResource(if (showMoreTools) R.string.more_tools_hide else R.string.more_tools_show))
                     }
+                    val tools = debugTools.value
                     if (showMoreTools) {
                         Row(
                             modifier =
@@ -396,21 +366,25 @@ fun MainScreen(
                             OutlinedButton(onClick = { viewModel.toggleDebugEffects() }) {
                                 Text(
                                     stringResource(
-                                        if (showDebugEffects) R.string.hide_debug_effects else R.string.show_debug_effects,
+                                        if (tools.showDebugEffects) R.string.hide_debug_effects else R.string.show_debug_effects,
                                     ),
                                 )
                             }
                         }
                     }
 
-                    if (showDebugEffects) {
+                    if (tools.showDebugEffects) {
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
                             Text(text = stringResource(R.string.debug_effects_title), style = MaterialTheme.typography.titleMedium)
-                            if (descriptors.isEmpty()) {
+                            if (tools.descriptors.isEmpty()) {
                                 Text(text = stringResource(R.string.debug_effects_empty))
                             } else {
+                                // A stable key: the list is queried again on every toggle, and an
+                                // effect is identified by its type and implementation. A device that
+                                // reported one twice must not crash the list (keys have to be unique).
+                                val descriptors = remember(tools.descriptors) { tools.descriptors.distinctBy(::effectKey) }
                                 LazyColumn(modifier = Modifier.height(100.dp)) {
-                                    items(descriptors) { descriptor ->
+                                    items(descriptors, key = ::effectKey) { descriptor ->
                                         EffectDescriptorRow(descriptor)
                                     }
                                 }
@@ -483,6 +457,8 @@ private fun PresetNameDialog(
         },
     )
 }
+
+private fun effectKey(descriptor: AudioEffectDescriptor): String = "${descriptor.typeUuid}_${descriptor.effectUuid}"
 
 @Composable
 private fun EffectDescriptorRow(descriptor: AudioEffectDescriptor) {

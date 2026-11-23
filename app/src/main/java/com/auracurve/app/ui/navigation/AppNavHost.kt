@@ -32,11 +32,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.auracurve.app.R
+import com.auracurve.app.diagnostics.SystemDiagnosticsSnapshot
 import com.auracurve.app.ui.MainScreen
 import com.auracurve.app.ui.diagnostics.DiagnosticsScreen
 import com.auracurve.app.ui.eq.EqStatus
 import com.auracurve.app.ui.main.MainViewModel
-import com.auracurve.app.ui.main.SystemDiagnosticsSnapshot
 import com.auracurve.app.ui.player.PlayerScreen
 import com.auracurve.app.ui.player.PlayerViewModel
 import com.auracurve.app.ui.player.shell.NowPlayingLayer
