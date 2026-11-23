@@ -88,7 +88,7 @@ class DataStorePlaylistRepository internal constructor(
 ) : PlaylistRepository {
     @Inject
     constructor(
-        @param:ApplicationContext context: Context,
+        @ApplicationContext context: Context,
         access: LocalAddressAccess,
     ) : this(context.playlistDataStore, access)
 

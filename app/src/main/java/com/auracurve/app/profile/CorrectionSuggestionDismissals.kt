@@ -49,7 +49,7 @@ class DataStoreCorrectionSuggestionDismissals internal constructor(
 ) : CorrectionSuggestionDismissals {
     @Inject
     constructor(
-        @param:ApplicationContext context: Context,
+        @ApplicationContext context: Context,
     ) : this(context, CoroutineScope(SupervisorJob() + Dispatchers.IO))
 
     private constructor(context: Context, scope: CoroutineScope) : this(createStore(context, scope), scope)
