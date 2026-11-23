@@ -3,7 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- The player's AudioPlayerService (:player) plays audio itself and keeps mediaPlayback. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!--
       The store build has no online source: equalizer, sound chain and files from the device only.
@@ -91,16 +93,18 @@
         </activity>
 
         <!--
-          foregroundServiceType="mediaPlayback": this service doesn't play media itself,
-          but there is no FGS type that exactly fits "listen for other apps' audio
-          sessions to attach effects" - mediaPlayback is what comparable published
-          system-wide equalizer apps use for this, and keeps this out of the
-          Play-policy-reviewed "specialUse" category. See roadmap.md Session 13.
+          foregroundServiceType="specialUse": this service plays nothing itself; it listens for
+          other apps' audio sessions and attaches the user's equalizer to them. No other FGS type
+          fits, so it is declared as special use with the subtype below (docs/FGS_DECLARATION.md).
         -->
         <service
             android:name=".service.AudioSessionForegroundService"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback" />
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Attaches the user's equalizer to the audio session of the app that is playing" />
+        </service>
 
         <!-- Quick-settings tiles (roadmap 06, P5-1): EQ on/off and next preset. -->
         <service
