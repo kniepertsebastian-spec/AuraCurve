@@ -2,7 +2,6 @@ package com.auracurve.app
 
 import android.app.Application
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.os.StrictMode
 import android.service.quicksettings.TileService
@@ -19,8 +18,6 @@ import com.auracurve.app.player.PlayerText
 import com.auracurve.app.player.playback.AutoCatalogHolder
 import com.auracurve.app.player.playback.PlaybackFadeState
 import com.auracurve.app.player.playback.PlayerDspState
-import com.auracurve.app.profile.SharedPreferencesCorrectionSuggestionDismissals
-import com.auracurve.app.profile.SharedPreferencesDeviceAliasStore
 import com.auracurve.app.quick.EqToggleTileService
 import com.auracurve.app.quick.NextPresetTileService
 import com.auracurve.app.quick.QuickControls
@@ -49,7 +46,11 @@ class AuraCurveApplication :
     override fun onCreate() {
         super.onCreate()
         if (BuildConfig.DEBUG) enableStrictMode()
-        warmUpPreferences()
+        // Starts reading the player's remembered settings in the background (DataStore, roadmap 2,
+        // M-5), so they are in memory before the first track plays. Nothing here reads the disk on
+        // the main thread.
+        PlayerDspState.load(this)
+        PlaybackFadeState.load(this)
         quickControls.onSurfacesChanged = {
             val context = this
             runCatching {
@@ -114,27 +115,7 @@ class AuraCurveApplication :
         )
     }
 
-    // SharedPreferences files are read from disk on first use, and the first read blocks until the
-    // file is loaded. The stores below are first used on the main thread (a view model, a service's
-    // onCreate), so their files are loaded here on a background thread, started before anything
-    // asks for them; the later main-thread reads then find them in memory.
-    private fun warmUpPreferences() {
-        Thread(
-            {
-                runCatching {
-                    getSharedPreferences(DEVICE_ALIASES_PREFS, Context.MODE_PRIVATE).all
-                    getSharedPreferences(CORRECTION_DISMISSALS_PREFS, Context.MODE_PRIVATE).all
-                    PlayerDspState.load(this)
-                    PlaybackFadeState.load(this)
-                }
-            },
-            "prefs-warmup",
-        ).start()
-    }
-
     private companion object {
-        const val DEVICE_ALIASES_PREFS = SharedPreferencesDeviceAliasStore.PREFS_NAME
-        const val CORRECTION_DISMISSALS_PREFS = SharedPreferencesCorrectionSuggestionDismissals.PREFS_NAME
         const val TAG = "AuraCurveApplication"
         const val COVER_CACHE_DIR = "covers"
         const val COVER_DISK_CACHE_BYTES = 64L * 1024 * 1024

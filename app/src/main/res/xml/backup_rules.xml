@@ -1,6 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Auto Backup for Android 11 and older. Presets, playlists and settings are backed up, so nothing
-  has to be set up again after restoring on a new phone. No rules means no exclusions.
+  Auto Backup for Android 11 and older (roadmap 2, M-4). Only what moves sensibly to another phone
+  is backed up, so nothing has to be set up again after a restore:
+    - database: custom presets, correction profiles, device and app profiles (Room, with its
+      -wal/-shm files so no recent change is lost),
+    - datastore: app settings, playlists and the player's sound settings (mono bass, limiter,
+      fade between tracks),
+    - sharedpref: only what an older version had not moved to DataStore yet.
+  Left out, because it only means something on this phone:
+    - device_aliases: the user's own names for this phone's outputs,
+    - correction_suggestion_dismissals: "Not now" answers for this phone's outputs.
+  Both are excluded in their DataStore file and in the SharedPreferences file older versions
+  used. Local files in playlists are remembered by addresses that only work on this phone; after a
+  restore the app takes such tracks out of the playlists (UnreadableLocalTracks).
+  Keep in sync with data_extraction_rules.xml (Android 12 and newer).
 -->
-<full-backup-content />
+<full-backup-content>
+    <include domain="database" path="." />
+    <include domain="file" path="datastore" />
+    <include domain="sharedpref" path="." />
+
+    <exclude domain="file" path="datastore/device_aliases.preferences_pb" />
+    <exclude domain="file" path="datastore/correction_suggestion_dismissals.preferences_pb" />
+    <exclude domain="sharedpref" path="device_aliases.xml" />
+    <exclude domain="sharedpref" path="correction_suggestion_dismissals.xml" />
+</full-backup-content>

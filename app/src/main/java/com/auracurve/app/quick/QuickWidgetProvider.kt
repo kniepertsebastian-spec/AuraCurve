@@ -6,13 +6,18 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.RemoteViews
 import androidx.core.content.ContextCompat
 import com.auracurve.app.R
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -32,25 +37,51 @@ class QuickWidgetProvider : AppWidgetProvider() {
     @Inject
     lateinit var reader: QuickStateReader
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
         val pending = goAsync()
-        scope.launch {
-            try {
-                val state = reader.current()
-                appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, views(context, state, controls.hasConsumer)) }
-            } finally {
-                pending.finish()
-            }
+        runAsync(finish = pending::finish) {
+            val state = reader.current()
+            appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, views(context, state, controls.hasConsumer)) }
         }
     }
 
     companion object {
+        private const val TAG = "QuickWidgetProvider"
+
+        /**
+         * Runs [block] off the main thread for one broadcast (roadmap 2, M-2). A failure (the saved
+         * state cannot be read, the launcher rejects the views) is logged, never rethrown: in a
+         * scope without a handler it would take the whole process down. [finish] - the broadcast's
+         * `PendingResult.finish()` - is always called, and the scope made for this one call is
+         * cancelled right after, so nothing outlives the broadcast.
+         */
+        internal fun runAsync(
+            finish: () -> Unit,
+            dispatcher: CoroutineDispatcher = Dispatchers.Default,
+            block: suspend () -> Unit,
+        ): Job {
+            val scope = CoroutineScope(SupervisorJob() + dispatcher)
+            return scope.launch {
+                try {
+                    block()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "Widget not updated", e)
+                } finally {
+                    try {
+                        finish()
+                    } finally {
+                        scope.cancel()
+                    }
+                }
+            }
+        }
+
         /** Redraws every placed widget with [state] (null: ask for the saved state again). */
         fun updateAll(
             context: Context,

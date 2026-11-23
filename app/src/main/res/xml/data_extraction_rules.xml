@@ -1,13 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12 and newer. Presets, playlists and settings go to a new phone, by cloud backup and by
-  cable/wireless transfer, so nothing has to be set up again after a restore.
+  Android 12 and newer (roadmap 2, M-4). The same rules as backup_rules.xml (Android 11 and
+  older), for the cloud backup and for cable/wireless transfer to a new phone: presets, profiles,
+  settings and playlists go along; the names and "Not now" answers for this phone's outputs
+  (device_aliases, correction_suggestion_dismissals) stay behind. Keep both files in sync.
 
   The cloud backup is skipped on a phone that cannot encrypt it with the lock screen (no lock
   screen set). A future sign-in token must be excluded here or stored so that it is not part of
   the backup.
 -->
 <data-extraction-rules>
-    <cloud-backup disableIfNoEncryptionCapabilities="true" />
-    <device-transfer />
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="database" path="." />
+        <include domain="file" path="datastore" />
+        <include domain="sharedpref" path="." />
+
+        <exclude domain="file" path="datastore/device_aliases.preferences_pb" />
+        <exclude domain="file" path="datastore/correction_suggestion_dismissals.preferences_pb" />
+        <exclude domain="sharedpref" path="device_aliases.xml" />
+        <exclude domain="sharedpref" path="correction_suggestion_dismissals.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore" />
+        <include domain="sharedpref" path="." />
+
+        <exclude domain="file" path="datastore/device_aliases.preferences_pb" />
+        <exclude domain="file" path="datastore/correction_suggestion_dismissals.preferences_pb" />
+        <exclude domain="sharedpref" path="device_aliases.xml" />
+        <exclude domain="sharedpref" path="correction_suggestion_dismissals.xml" />
+    </device-transfer>
 </data-extraction-rules>

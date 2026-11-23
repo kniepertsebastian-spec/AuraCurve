@@ -2,18 +2,20 @@ package com.auracurve.app.di
 
 import com.auracurve.app.correction.CorrectionProfileRepository
 import com.auracurve.app.correction.RoomCorrectionProfileRepository
+import com.auracurve.app.playlist.AndroidLocalAddressAccess
 import com.auracurve.app.playlist.DataStorePlaylistRepository
+import com.auracurve.app.playlist.LocalAddressAccess
 import com.auracurve.app.playlist.PlaylistRepository
 import com.auracurve.app.preset.PresetRepository
 import com.auracurve.app.preset.RoomPresetRepository
 import com.auracurve.app.profile.AppProfileRepository
 import com.auracurve.app.profile.CorrectionSuggestionDismissals
+import com.auracurve.app.profile.DataStoreCorrectionSuggestionDismissals
+import com.auracurve.app.profile.DataStoreDeviceAliasStore
 import com.auracurve.app.profile.DeviceAliasStore
 import com.auracurve.app.profile.DeviceProfileRepository
 import com.auracurve.app.profile.RoomAppProfileRepository
 import com.auracurve.app.profile.RoomDeviceProfileRepository
-import com.auracurve.app.profile.SharedPreferencesCorrectionSuggestionDismissals
-import com.auracurve.app.profile.SharedPreferencesDeviceAliasStore
 import com.auracurve.app.settings.AppSettingsRepository
 import com.auracurve.app.settings.DataStoreAppSettingsRepository
 import dagger.Binds
@@ -47,13 +49,17 @@ abstract class PersistenceModule {
 
     @Binds
     @Singleton
-    abstract fun bindDeviceAliasStore(impl: SharedPreferencesDeviceAliasStore): DeviceAliasStore
+    abstract fun bindDeviceAliasStore(impl: DataStoreDeviceAliasStore): DeviceAliasStore
 
     @Binds
     @Singleton
-    abstract fun bindCorrectionSuggestionDismissals(impl: SharedPreferencesCorrectionSuggestionDismissals): CorrectionSuggestionDismissals
+    abstract fun bindCorrectionSuggestionDismissals(impl: DataStoreCorrectionSuggestionDismissals): CorrectionSuggestionDismissals
 
     @Binds
     @Singleton
     abstract fun bindPlaylistRepository(impl: DataStorePlaylistRepository): PlaylistRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindLocalAddressAccess(impl: AndroidLocalAddressAccess): LocalAddressAccess
 }
