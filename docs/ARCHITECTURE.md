@@ -67,6 +67,12 @@ applied again) is described in `docs/adr/0001-kotlin-ksp-with-agp9.md`.
 - No `AudioEffect` calls directly from composables.
 - Every effect object has exactly one owner in the audio layer.
 - Creating, applying and releasing effects is serialized with a `Mutex` (see `AndroidAudioEngine`).
+- Every effect call is a binder transaction and runs on `@AudioIoDispatcher`
+  (`Dispatchers.IO.limitedParallelism(1)`), never on the main thread; that includes the device
+  query (`AudioEffect.queryEffects`) and the teardown from `markDetached()`. Rapid `apply()` calls
+  are coalesced: only the newest settings reach the effects.
+- Only public SDK APIs: no reflection on hidden platform methods (non-SDK interfaces are
+  restricted and flagged by Play).
 - Effects are always released in `finally`.
 
 ## Errors and logging

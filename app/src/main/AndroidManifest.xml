@@ -41,7 +41,8 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AuraCurve">
+        android:theme="@style/Theme.AuraCurve"
+        android:usesCleartextTraffic="false">
 
         <!--
           androidx.profileinstaller's receiver for `adb shell am broadcast` profile installs is
