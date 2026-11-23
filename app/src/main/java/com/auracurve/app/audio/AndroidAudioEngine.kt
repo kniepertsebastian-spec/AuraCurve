@@ -4,9 +4,10 @@ import android.media.audiofx.DynamicsProcessing
 import android.media.audiofx.Equalizer
 import android.os.Build
 import android.util.Log
-import com.auracurve.app.di.DefaultDispatcher
+import com.auracurve.app.di.AudioIoDispatcher
 import com.auracurve.app.dsp.PreEqLayout
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -17,7 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -40,16 +43,22 @@ private const val LIMITER_RELEASE_MS = 120f
 // energy, so with a shared threshold it is the one that pumps first.
 private const val SUB_BAND_THRESHOLD_OFFSET_DB = 3f
 
+// Every call on Equalizer / DynamicsProcessing (create, set*, enabled, release) and
+// AudioEffect.queryEffects() is a binder transaction to the audio server. They all run on
+// audioDispatcher (one thread at a time, never the main thread), under the mutex; callers on the
+// main thread only suspend and never wait on the audio server.
 @Singleton
 class AndroidAudioEngine
     @Inject
     constructor(
-        @DefaultDispatcher dispatcher: CoroutineDispatcher,
+        @AudioIoDispatcher private val audioDispatcher: CoroutineDispatcher,
         private val effectRepository: AudioEffectRepository,
     ) : AudioEngine {
         // Secondary constructor preserves compatibility with any callers/tests that only pass a dispatcher.
         constructor(dispatcher: CoroutineDispatcher) : this(dispatcher, AndroidAudioEffectRepository())
 
+        // Which effect engines the device has. Asked for once, on audioDispatcher (first use is either
+        // the init block below or an attach), never while Hilt builds this singleton on the main thread.
         private val staticDeviceCapabilities: AudioCapabilities by lazy {
             runCatching {
                 AudioCapabilitiesMapper.map(
@@ -59,7 +68,8 @@ class AndroidAudioEngine
             }.getOrDefault(AudioCapabilities())
         }
 
-        private val _capabilities = MutableStateFlow(staticDeviceCapabilities)
+        // Empty until the device query below has run; the flow then reports the real values.
+        private val _capabilities = MutableStateFlow(AudioCapabilities())
         override val capabilities: StateFlow<AudioCapabilities> = _capabilities.asStateFlow()
 
         private val _state = MutableStateFlow<AudioEngineState>(AudioEngineState.Detached)
@@ -90,20 +100,50 @@ class AndroidAudioEngine
         // Also now guards the retry state machine's transitions.
         private val mutex = Mutex()
 
-        // Backs the Retrying backoff timers. A SupervisorJob so one cancelled/failed
-        // retry can't take down others, though in practice only one is ever
-        // in flight at a time (each new attach()/detach() cancels the previous).
-        private val engineScope = CoroutineScope(SupervisorJob() + dispatcher)
+        // Backs the Retrying backoff timers and the teardown from markDetached(). A SupervisorJob so
+        // one cancelled/failed job can't take down others. The handler only logs: an exception that
+        // escapes a job here must not crash the process (the effect calls already catch their own).
+        private val engineScope =
+            CoroutineScope(
+                SupervisorJob() + audioDispatcher +
+                    CoroutineExceptionHandler { _, e -> Log.e(TAG, "Uncaught failure in the audio engine", e) },
+            )
         private var retryJob: Job? = null
 
-        override suspend fun attach(session: AudioSession): Boolean =
-            mutex.withLock {
+        // Counts attach() calls, so a teardown queued by markDetached() can tell that a newer attach
+        // came after it and must not be undone.
+        private val attachEpoch = AtomicLong()
+
+        // Slider drags call apply() far faster than the audio server answers (34 pre-EQ bands are
+        // 34+ binder calls per apply). Each call records the newest settings here; whichever call gets
+        // the mutex next applies only the newest, and the calls it covered return without touching the
+        // effects. A burst of updates therefore costs at most two rounds of binder calls, not one each.
+        private val applyRequestLock = Any()
+        private var requestedApplyGeneration = 0L // guarded by applyRequestLock
+        private var appliedApplyGeneration = 0L // guarded by mutex
+        private var lastApplyResult = false // guarded by mutex
+
+        // The pre-EQ layout DynamicsProcessing was created with; switching it needs a re-attach.
+        private var configuredHighResolutionEq: Boolean? = null // guarded by mutex
+
+        init {
+            engineScope.launch {
+                mutex.withLock {
+                    if (!isAttached.get()) _capabilities.value = staticDeviceCapabilities
+                }
+            }
+        }
+
+        override suspend fun attach(session: AudioSession): Boolean {
+            attachEpoch.incrementAndGet()
+            return onAudioThread {
                 cancelRetryLocked()
                 attachLocked(session, attempt = 0)
             }
+        }
 
         override suspend fun detach() =
-            mutex.withLock {
+            onAudioThread {
                 cancelRetryLocked()
                 releaseEffectsLocked()
                 currentSessionId = null
@@ -112,36 +152,34 @@ class AndroidAudioEngine
             }
 
         override fun markDetached() {
-            // Not suspend - Service.onDestroy() isn't a coroutine. Best-effort immediate
-            // teardown, plus serialized cleanup on engineScope if mutex is currently held.
-            retryJob?.cancel()
-            retryJob = null
-            currentSessionId = null
+            // Not suspend - Service.onDestroy() isn't a coroutine, and it runs on the main thread.
+            // The state flips at once; releasing the effects (binder calls) is queued behind whatever
+            // the engine is doing, on the audio thread. An attach() that arrives after this call (the
+            // service restarted quickly) wins: the queued teardown then leaves its effects alone.
+            val epoch = attachEpoch.get()
             _state.value = AudioEngineState.Detached
-            if (mutex.tryLock()) {
-                try {
+            engineScope.launch {
+                mutex.withLock {
+                    if (attachEpoch.get() != epoch) return@withLock
+                    cancelRetryLocked()
+                    currentSessionId = null
                     releaseEffectsLocked()
                     _capabilities.value = staticDeviceCapabilities
-                } finally {
-                    mutex.unlock()
-                }
-            } else {
-                engineScope.launch {
-                    mutex.withLock {
-                        if (_state.value is AudioEngineState.Detached) {
-                            releaseEffectsLocked()
-                            _capabilities.value = staticDeviceCapabilities
-                        }
-                    }
+                    _state.value = AudioEngineState.Detached
                 }
             }
         }
 
         override suspend fun retry(): Boolean =
-            mutex.withLock {
-                val sessionId = currentSessionId ?: return@withLock false
+            onAudioThread {
+                val sessionId = currentSessionId ?: return@onAudioThread false
                 cancelRetryLocked()
                 attachLocked(AudioSession(sessionId = sessionId), attempt = 0)
+            }
+
+        private suspend fun <T> onAudioThread(block: () -> T): T =
+            withContext(audioDispatcher) {
+                mutex.withLock { block() }
             }
 
         // attempt == 0 means "fresh session, no backoff" (Listening -> Attaching,
@@ -182,13 +220,15 @@ class AndroidAudioEngine
                 var dpMbcSupported = false
                 var dpPreEqCutoffs: List<Float> = emptyList()
                 val preEqFailures = mutableListOf<String>()
+                val highResolutionEq = _currentSettings.value.highResolutionEq
+                configuredHighResolutionEq = highResolutionEq
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     // Most capable configuration first; the first one the device accepts wins.
                     // Without the experimental switch the order is the long-standing
                     // MBC + limiter, then limiter only.
                     val attempts: List<Pair<List<Float>?, Boolean>> =
-                        if (_currentSettings.value.highResolutionEq) {
+                        if (highResolutionEq) {
                             // Finest layout first, then the coarser one, then no pre-EQ at all.
                             val layouts = listOf(PreEqLayout.CUTOFFS_HZ, PreEqLayout.COARSE_CUTOFFS_HZ)
                             layouts.flatMap { listOf(it to true, it to false) } + listOf(null to true, null to false)
@@ -264,6 +304,7 @@ class AndroidAudioEngine
 
         private fun releaseEffectsLocked() {
             isAttached.set(false)
+            configuredHighResolutionEq = null
             val eqToRelease = equalizer
             equalizer = null
             try {
@@ -283,21 +324,37 @@ class AndroidAudioEngine
             }
         }
 
-        override suspend fun apply(settings: ProcessingSettings): Boolean =
-            mutex.withLock {
-                val previousHighRes = _currentSettings.value.highResolutionEq
-                _currentSettings.value = settings
-                if (!isAttached.get()) return@withLock false
-                val sessionId = currentSessionId ?: return@withLock false
-
-                // If the user toggled highResolutionEq while attached, re-configure
-                // DynamicsProcessing so switching between 5-band and 34-band takes
-                // effect immediately and deterministically.
-                if (previousHighRes != settings.highResolutionEq) {
-                    return@withLock attachLocked(AudioSession(sessionId = sessionId), attempt = 0)
+        override suspend fun apply(settings: ProcessingSettings): Boolean {
+            // Recorded at once, in call order: currentSettings answers immediately, and the next
+            // attach applies these even if this call is still waiting for the audio thread.
+            val generation =
+                synchronized(applyRequestLock) {
+                    _currentSettings.value = settings
+                    ++requestedApplyGeneration
                 }
-                applyInternal(settings, sessionId)
+            return onAudioThread {
+                // A later call already applied newer settings while this one waited: nothing left to do.
+                if (appliedApplyGeneration >= generation) return@onAudioThread lastApplyResult
+                val (newestGeneration, newest) =
+                    synchronized(applyRequestLock) { requestedApplyGeneration to _currentSettings.value }
+                appliedApplyGeneration = newestGeneration
+                lastApplyResult = applyLocked(newest)
+                lastApplyResult
             }
+        }
+
+        private fun applyLocked(settings: ProcessingSettings): Boolean {
+            if (!isAttached.get()) return false
+            val sessionId = currentSessionId ?: return false
+
+            // If the user toggled highResolutionEq while attached, re-configure
+            // DynamicsProcessing so switching between 5-band and 34-band takes
+            // effect immediately and deterministically.
+            if (configuredHighResolutionEq != settings.highResolutionEq) {
+                return attachLocked(AudioSession(sessionId = sessionId), attempt = 0)
+            }
+            return applyInternal(settings, sessionId)
+        }
 
         private fun createDynamicsConfig(
             mbcEnabled: Boolean,
