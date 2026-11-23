@@ -1,12 +1,14 @@
 # Foreground-service declaration for Google Play
 
-Play Console › App content › Foreground service permissions. The store build declares two services
-with `foregroundServiceType="mediaPlayback"`.
+Play Console › App content › Foreground service permissions.
+
+> **This branch is the `specialUse` fallback.** `AudioSessionForegroundService` is declared as
+> `specialUse` here; the player keeps `mediaPlayback`. Merge only if Play rejected `mediaPlayback`.
 
 | Service | Plays audio itself | Declaration |
 |---|---|---|
 | `AudioPlayerService` (`:player`) | yes | Ordinary media playback: a media-library session with notification, lock screen, Bluetooth and Android Auto. |
-| `AudioSessionForegroundService` (`:app`) | no | Needs the explanation below; it is the likelier review question. |
+| `AudioSessionForegroundService` (`:app`) | no | `specialUse` (subtype in the manifest); needs the explanation below. |
 
 ## Decision (roadmap 02, step 2)
 

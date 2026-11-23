@@ -150,7 +150,7 @@ class AudioSessionForegroundService : LifecycleService() {
             stopSelf()
             return START_NOT_STICKY
         }
-        // START_NOT_STICKY prevents Android 14/15 from blindly recreating the mediaPlayback
+        // START_NOT_STICKY prevents Android 14/15 from blindly recreating the foreground
         // service in the background when the app is not visible, which triggers
         // ForegroundServiceStartNotAllowedException and Samsung's "deep standby" crash warning.
         return START_NOT_STICKY
@@ -170,9 +170,10 @@ class AudioSessionForegroundService : LifecycleService() {
 
     private fun promoteToForegroundSafely(): Boolean =
         try {
+            // specialUse exists from Android 14; before that a service needs no type for this.
             val fgsType =
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
                 } else {
                     0
                 }
