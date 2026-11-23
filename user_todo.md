@@ -45,13 +45,12 @@ z. B. gefiltert mit `adb logcat | grep -E "StrictMode|hiddenapi|Accessing hidden
 Der Code-Teil der Roadmap ist umgesetzt (PR auf `claude/trusting-mccarthy-jxiai5`).
 Diese Punkte brauchen ein echtes Gerät (oder zwei) und bleiben deshalb bei dir.
 
-### 1. CI prüfen
+### 1. CI
 
-- [ ] In der Cloud-Session gibt es kein Android SDK (`dl.google.com` ist gesperrt), der Code wurde
-      daher hier nicht kompiliert; nur ktlint lief lokal. Bitte den CI-Lauf des PRs prüfen
-      (ktlint, Build, Unit-Tests inkl. `QuickWidgetProviderTest`, `PersistedStateTest`,
+- [x] CI-Lauf grün (ktlint, Build, Unit-Tests inkl. `QuickWidgetProviderTest`, `PersistedStateTest`,
       `DeviceAliasStoreTest`, `SharedPreferencesMigrationTest`, `DataStorePlaylistRepositoryTest`,
       `BackupRulesTest`, `:core:test` mit `UnreadableLocalTracksTest`, Release-Build mit Lint).
+      Lokal wurde in der Cloud-Session nicht gebaut (kein Android SDK).
 
 ### 2. Migration bei Bestandskunden (M-5)
 
